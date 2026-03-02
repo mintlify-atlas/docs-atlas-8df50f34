@@ -1,0 +1,144 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Mermaid",
+  "projectDescription": "JavaScript library for generating diagrams and charts from markdown-like text definitions",
+  "theme": "palm",
+  "primaryColor": "#FF3670",
+  "lightColor": "#FF6B9D",
+  "darkColor": "#E6003C",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/syntax-overview",
+              "concepts/initialization",
+              "concepts/configuration",
+              "concepts/theming"
+            ]
+          },
+          {
+            "group": "Diagram Types",
+            "pages": [
+              "diagrams/flowchart",
+              "diagrams/sequence-diagram",
+              "diagrams/class-diagram",
+              "diagrams/state-diagram",
+              "diagrams/er-diagram",
+              "diagrams/gantt",
+              "diagrams/pie",
+              "diagrams/quadrant",
+              "diagrams/requirement",
+              "diagrams/gitgraph",
+              "diagrams/user-journey",
+              "diagrams/mindmap",
+              "diagrams/timeline",
+              "diagrams/sankey",
+              "diagrams/xy-chart",
+              "diagrams/block",
+              "diagrams/architecture",
+              "diagrams/ishikawa",
+              "diagrams/kanban",
+              "diagrams/packet",
+              "diagrams/c4",
+              "diagrams/zenuml",
+              "diagrams/treemap",
+              "diagrams/venn",
+              "diagrams/radar"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/setup",
+              "configuration/directives",
+              "configuration/accessibility",
+              "configuration/icons",
+              "configuration/layouts",
+              "configuration/math"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/rendering-options",
+              "advanced/error-handling",
+              "advanced/custom-diagrams",
+              "advanced/integrations"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core API",
+            "pages": [
+              "api/overview",
+              "api/mermaid",
+              "api/mermaid-api"
+            ]
+          },
+          {
+            "group": "Methods",
+            "pages": [
+              "api/methods/initialize",
+              "api/methods/run",
+              "api/methods/render",
+              "api/methods/parse",
+              "api/methods/register-external-diagrams",
+              "api/methods/register-icon-packs",
+              "api/methods/register-layout-loaders"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "api/types/mermaid-config",
+              "api/types/render-result",
+              "api/types/parse-result",
+              "api/types/run-options"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "28+ diagram types including flowcharts, sequence diagrams, class diagrams, and more",
+    "Markdown-inspired text syntax for creating diagrams",
+    "Browser and Node.js rendering support",
+    "Extensive theming and styling options",
+    "Accessibility support with ARIA labels",
+    "Custom icon packs and layout engines",
+    "Plugin system for external diagrams",
+    "Live editor and CDN distribution"
+  ],
+  "publicApiSurface": [
+    "mermaid.initialize(config)",
+    "mermaid.run(options)",
+    "mermaid.render(id, text, container)",
+    "mermaid.parse(text, parseOptions)",
+    "mermaid.registerExternalDiagrams(diagrams)",
+    "registerIconPacks(iconPacks)",
+    "registerLayoutLoaders(layoutLoaders)",
+    "mermaidAPI.render(id, text, config)",
+    "mermaidAPI.parse(text, parseOptions)",
+    "mermaidAPI.initialize(config)",
+    "mermaidAPI.getConfig()",
+    "mermaidAPI.updateSiteConfig(config)",
+    "mermaidAPI.getSiteConfig()"
+  ]
+}
