@@ -1,0 +1,455 @@
+---
+title: Initialization
+description: Learn how to initialize and configure Mermaid in your application, including setup patterns for different environments.
+---
+
+Mermaid needs to be initialized before it can render diagrams. The initialization process sets up the rendering engine, applies configuration, and prepares Mermaid to find and process diagram code.
+
+## Quick start
+
+The simplest way to initialize Mermaid is to call `initialize()` before rendering:
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: true });
+```
+
+With `startOnLoad: true`, Mermaid automatically finds and renders all elements with the class `mermaid` when the page loads.
+
+## Initialization methods
+
+<Tabs>
+  <Tab title="Automatic (startOnLoad)">
+    The easiest method for static pages:
+
+    ```html
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <script type="module">
+          import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@latest/dist/mermaid.esm.min.mjs';
+          mermaid.initialize({ startOnLoad: true });
+        </script>
+      </head>
+      <body>
+        <div class="mermaid">
+          flowchart LR
+            A --> B
+        </div>
+      </body>
+    </html>
+    ```
+
+    Mermaid listens for the `load` event and automatically processes all `.mermaid` elements.
+  </Tab>
+  <Tab title="Manual (run)">
+    For more control over when diagrams are rendered:
+
+    ```javascript
+    import mermaid from 'mermaid';
+
+    // Initialize with startOnLoad: false
+    mermaid.initialize({ 
+      startOnLoad: false,
+      theme: 'dark'
+    });
+
+    // Render when you're ready
+    await mermaid.run();
+    ```
+
+    This is useful for:
+    - Single-page applications
+    - Dynamic content loading
+    - Controlling render timing
+  </Tab>
+  <Tab title="Selective rendering">
+    Render specific elements or use custom selectors:
+
+    ```javascript
+    import mermaid from 'mermaid';
+
+    mermaid.initialize({ startOnLoad: false });
+
+    // Render specific selector
+    await mermaid.run({
+      querySelector: '.my-diagrams'
+    });
+
+    // Or render specific nodes
+    const nodes = document.querySelectorAll('.dynamic-diagram');
+    await mermaid.run({
+      nodes: nodes
+    });
+    ```
+  </Tab>
+  <Tab title="Programmatic rendering">
+    Generate SVG directly without DOM elements:
+
+    ```javascript
+    import mermaid from 'mermaid';
+
+    mermaid.initialize({ startOnLoad: false });
+
+    const graphDefinition = 'flowchart LR\nA-->B';
+    const { svg, bindFunctions } = await mermaid.render(
+      'graphDiv', 
+      graphDefinition
+    );
+
+    // Insert into DOM
+    const element = document.querySelector('#graphDiv');
+    element.innerHTML = svg;
+    
+    // Bind any interactive functions
+    if (bindFunctions) {
+      bindFunctions(element);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration options
+
+The `initialize()` function accepts a configuration object. Here are the most commonly used options:
+
+### Basic options
+
+```javascript
+mermaid.initialize({
+  // Auto-render on page load
+  startOnLoad: true,
+  
+  // Visual theme
+  theme: 'default', // 'default' | 'dark' | 'forest' | 'neutral' | 'base'
+  
+  // Logging level
+  logLevel: 'error', // 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+  
+  // Security level
+  securityLevel: 'strict', // 'strict' | 'loose' | 'sandbox'
+  
+  // Generate deterministic IDs
+  deterministicIds: false,
+  deterministicIDSeed: undefined,
+});
+```
+
+### Security levels
+
+<Accordion title="Understanding security levels">
+  - **strict** (default): Prevents potentially dangerous features. Tags in text are encoded, click functionality is disabled.
+  - **loose**: Allows more features but can be a security risk. Enables click events and allows some HTML.
+  - **sandbox**: Renders diagrams in a sandboxed iframe for maximum security.
+
+  ```javascript
+  mermaid.initialize({
+    securityLevel: 'strict', // Recommended for user-generated content
+  });
+  ```
+</Accordion>
+
+### Theme configuration
+
+```javascript
+mermaid.initialize({
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#BB2528',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#7C0000',
+    lineColor: '#F8B229',
+    secondaryColor: '#006100',
+    tertiaryColor: '#fff'
+  }
+});
+```
+
+See the [theming guide](/concepts/theming) for more details.
+
+## The run() function
+
+The `run()` function is the modern way to render diagrams:
+
+```typescript
+interface RunOptions {
+  // CSS selector for finding diagrams (default: '.mermaid')
+  querySelector?: string;
+  
+  // Specific nodes to render (overrides querySelector)
+  nodes?: ArrayLike<HTMLElement>;
+  
+  // Callback after each diagram renders
+  postRenderCallback?: (id: string) => unknown;
+  
+  // Suppress errors instead of throwing
+  suppressErrors?: boolean;
+}
+
+await mermaid.run(options);
+```
+
+### Examples
+
+<Tabs>
+  <Tab title="Custom selector">
+    ```javascript
+    // Only render diagrams in a specific container
+    await mermaid.run({
+      querySelector: '#content .diagram'
+    });
+    ```
+  </Tab>
+  <Tab title="With callback">
+    ```javascript
+    // Track rendering progress
+    await mermaid.run({
+      postRenderCallback: (id) => {
+        console.log(`Rendered diagram: ${id}`);
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="Error handling">
+    ```javascript
+    // Gracefully handle errors
+    await mermaid.run({
+      suppressErrors: true
+    });
+
+    // Or catch errors explicitly
+    try {
+      await mermaid.run();
+    } catch (error) {
+      console.error('Failed to render:', error);
+    }
+    ```
+  </Tab>
+  <Tab title="Specific nodes">
+    ```javascript
+    // Render dynamically added content
+    const newDiagram = document.createElement('div');
+    newDiagram.className = 'mermaid';
+    newDiagram.textContent = 'flowchart LR\nA-->B';
+    document.body.appendChild(newDiagram);
+
+    await mermaid.run({
+      nodes: [newDiagram]
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## The render() function
+
+For programmatic diagram generation without DOM elements:
+
+```javascript
+const graphDefinition = `
+  flowchart TB
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Continue]
+    B -->|No| D[Stop]
+`;
+
+const { svg, bindFunctions } = await mermaid.render(
+  'myDiagramId',
+  graphDefinition,
+  container // optional container element
+);
+
+// svg is a string containing the SVG markup
+console.log(svg);
+
+// Insert into page
+const element = document.querySelector('#target');
+element.innerHTML = svg;
+
+// Bind interactive features (clicks, etc.)
+if (bindFunctions) {
+  bindFunctions(element);
+}
+```
+
+<Note>
+The `render()` function returns a Promise that resolves with the SVG string and optional bind functions. Multiple calls are automatically queued and executed serially.
+</Note>
+
+## Parsing and validation
+
+Use the `parse()` function to validate diagram syntax without rendering:
+
+```javascript
+// Returns diagram type if valid
+try {
+  const result = await mermaid.parse('flowchart LR\nA-->B');
+  console.log(result); // { diagramType: 'flowchart-v2' }
+} catch (error) {
+  console.error('Invalid syntax:', error);
+}
+
+// Or suppress errors
+const result = await mermaid.parse(
+  'invalid syntax',
+  { suppressErrors: true }
+);
+console.log(result); // false
+```
+
+## Deprecated: init() function
+
+<Warning>
+The `init()` function is deprecated. Use `initialize()` and `run()` instead.
+</Warning>
+
+Old pattern:
+```javascript
+// Deprecated - don't use
+mermaid.init(config, '.mermaid');
+```
+
+New pattern:
+```javascript
+// Use this instead
+mermaid.initialize(config);
+await mermaid.run({ querySelector: '.mermaid' });
+```
+
+## Framework integration patterns
+
+<Tabs>
+  <Tab title="React">
+    ```jsx
+    import { useEffect, useRef } from 'react';
+    import mermaid from 'mermaid';
+
+    mermaid.initialize({ startOnLoad: false });
+
+    function MermaidDiagram({ chart }) {
+      const ref = useRef(null);
+
+      useEffect(() => {
+        if (ref.current) {
+          mermaid.run({
+            nodes: [ref.current]
+          });
+        }
+      }, [chart]);
+
+      return (
+        <div ref={ref} className="mermaid">
+          {chart}
+        </div>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Vue">
+    ```vue
+    <template>
+      <div ref="mermaidRef" class="mermaid">
+        {{ chart }}
+      </div>
+    </template>
+
+    <script setup>
+    import { ref, onMounted, watch } from 'vue';
+    import mermaid from 'mermaid';
+
+    mermaid.initialize({ startOnLoad: false });
+
+    const props = defineProps(['chart']);
+    const mermaidRef = ref(null);
+
+    const renderDiagram = async () => {
+      if (mermaidRef.value) {
+        await mermaid.run({
+          nodes: [mermaidRef.value]
+        });
+      }
+    };
+
+    onMounted(renderDiagram);
+    watch(() => props.chart, renderDiagram);
+    </script>
+    ```
+  </Tab>
+  <Tab title="Svelte">
+    ```svelte
+    <script>
+      import { onMount } from 'svelte';
+      import mermaid from 'mermaid';
+
+      export let chart;
+      let container;
+
+      mermaid.initialize({ startOnLoad: false });
+
+      onMount(async () => {
+        await mermaid.run({
+          nodes: [container]
+        });
+      });
+
+      $: if (container) {
+        mermaid.run({ nodes: [container] });
+      }
+    </script>
+
+    <div bind:this={container} class="mermaid">
+      {chart}
+    </div>
+    ```
+  </Tab>
+  <Tab title="Angular">
+    ```typescript
+    import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+    import mermaid from 'mermaid';
+
+    @Component({
+      selector: 'app-mermaid',
+      template: '<div #mermaid class="mermaid">{{ chart }}</div>'
+    })
+    export class MermaidComponent implements OnInit {
+      @Input() chart: string;
+      @ViewChild('mermaid') mermaidDiv: ElementRef;
+
+      ngOnInit() {
+        mermaid.initialize({ startOnLoad: false });
+      }
+
+      ngAfterViewInit() {
+        mermaid.run({
+          nodes: [this.mermaidDiv.nativeElement]
+        });
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Best practices
+
+1. **Initialize once** - Call `initialize()` only once, typically at application startup
+2. **Use run() for SPAs** - Set `startOnLoad: false` and manually call `run()` when needed
+3. **Handle errors** - Always wrap render calls in try-catch or use `suppressErrors`
+4. **Avoid re-initialization** - Don't call `initialize()` multiple times; use `updateSiteConfig()` instead
+5. **Process diagrams selectively** - Use the `nodes` option for better performance with many diagrams
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="sliders" href="/concepts/configuration">
+    Explore detailed configuration options
+  </Card>
+  <Card title="Theming" icon="palette" href="/concepts/theming">
+    Customize diagram appearance
+  </Card>
+  <Card title="API reference" icon="code" href="/api/overview">
+    Complete API documentation
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/intro/getting-started">
+    Learn about different deployment methods
+  </Card>
+</CardGroup>

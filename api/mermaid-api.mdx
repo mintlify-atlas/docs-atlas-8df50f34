@@ -1,0 +1,405 @@
+---
+title: mermaidAPI
+description: Lower-level API for internal Mermaid operations (deprecated for external use)
+---
+
+<Warning>
+The `mermaidAPI` export is deprecated for external use. Use the [mermaid](/api/mermaid) export instead for all application integration.
+</Warning>
+
+The `mermaidAPI` provides lower-level functions used internally by Mermaid. While accessible, it is marked as deprecated for external use and lacks the automatic queueing and error handling of the high-level `mermaid` API.
+
+## Import
+
+```javascript
+import { mermaidAPI } from 'mermaid';
+// or
+import mermaid from 'mermaid';
+const api = mermaid.mermaidAPI;
+```
+
+## Interface
+
+```typescript
+interface MermaidAPI {
+  render(id: string, text: string, svgContainingElement?: Element): Promise<RenderResult>;
+  parse(text: string, parseOptions?: ParseOptions): Promise<ParseResult | false>;
+  initialize(userOptions?: MermaidConfig): void;
+  getConfig(): MermaidConfig;
+  setConfig(config: MermaidConfig): MermaidConfig;
+  getSiteConfig(): MermaidConfig;
+  updateSiteConfig(config: MermaidConfig): MermaidConfig;
+  reset(): void;
+  globalReset(): void;
+  defaultConfig: MermaidConfig;
+  getDiagramFromText(text: string, metadata?: { title?: string }): Promise<Diagram>;
+}
+```
+
+## Key differences from mermaid
+
+| Feature | mermaid | mermaidAPI |
+|---------|---------|------------|
+| **Execution** | Queued automatically | Direct execution |
+| **Error handling** | Built-in with callbacks | Manual |
+| **Race conditions** | Prevented | Possible |
+| **Status** | Recommended | Deprecated |
+| **Use case** | Application integration | Internal implementation |
+
+<Note>
+The high-level `mermaid.render()` wraps `mermaidAPI.render()` with automatic queueing. Multiple calls to `mermaid.render()` execute serially, while `mermaidAPI.render()` executes immediately.
+</Note>
+
+## Methods
+
+### render()
+
+Render a diagram directly without queueing.
+
+```typescript
+function render(
+  id: string,
+  text: string,
+  svgContainingElement?: Element
+): Promise<RenderResult>
+```
+
+**Parameters:**
+
+- `id` - The SVG element ID
+- `text` - Mermaid diagram definition  
+- `svgContainingElement` (optional) - Container element
+
+**Returns:** `Promise<RenderResult>`
+
+```typescript
+interface RenderResult {
+  svg: string;
+  diagramType: string;
+  bindFunctions?: (element: Element) => void;
+}
+```
+
+**Example:**
+
+```javascript
+import { mermaidAPI } from 'mermaid';
+
+mermaidAPI.initialize({ theme: 'dark' });
+
+const { svg, bindFunctions } = await mermaidAPI.render(
+  'diagram1',
+  'graph TD; A-->B'
+);
+
+document.getElementById('output').innerHTML = svg;
+```
+
+<Warning>
+Unlike `mermaid.render()`, this method does not queue executions. Calling it multiple times concurrently may cause race conditions.
+</Warning>
+
+### parse()
+
+Parse and validate diagram syntax.
+
+```typescript
+function parse(
+  text: string,
+  parseOptions?: ParseOptions
+): Promise<ParseResult | false>
+```
+
+**Parameters:**
+
+- `text` - Diagram definition
+- `parseOptions`
+  - `suppressErrors?: boolean` - Return `false` instead of throwing
+
+**Returns:** `Promise<ParseResult>` or `Promise<false>`
+
+```typescript
+interface ParseResult {
+  diagramType: string;
+  config: MermaidConfig;
+}
+```
+
+**Example:**
+
+```javascript
+import { mermaidAPI } from 'mermaid';
+
+const result = await mermaidAPI.parse('flowchart TD\nA-->B');
+console.log(result.diagramType); // 'flowchart-v2'
+```
+
+### initialize()
+
+Set Mermaid configuration.
+
+```typescript
+function initialize(userOptions?: MermaidConfig): void
+```
+
+**Example:**
+
+```javascript
+import { mermaidAPI } from 'mermaid';
+
+mermaidAPI.initialize({
+  theme: 'forest',
+  logLevel: 'debug',
+  securityLevel: 'strict'
+});
+```
+
+### getConfig()
+
+Get the current merged configuration.
+
+```typescript
+function getConfig(): MermaidConfig
+```
+
+**Example:**
+
+```javascript
+const config = mermaidAPI.getConfig();
+console.log(config.theme); // Current theme
+```
+
+### setConfig()
+
+Update the current configuration.
+
+```typescript
+function setConfig(config: MermaidConfig): MermaidConfig
+```
+
+**Example:**
+
+```javascript
+mermaidAPI.setConfig({ theme: 'dark' });
+```
+
+### getSiteConfig()
+
+Get the site-level configuration (set via `initialize()`).
+
+```typescript
+function getSiteConfig(): MermaidConfig
+```
+
+**Example:**
+
+```javascript
+const siteConfig = mermaidAPI.getSiteConfig();
+```
+
+### updateSiteConfig()
+
+Update the site-level configuration.
+
+```typescript
+function updateSiteConfig(config: MermaidConfig): MermaidConfig
+```
+
+**Example:**
+
+```javascript
+mermaidAPI.updateSiteConfig({ startOnLoad: false });
+```
+
+### reset()
+
+Reset configuration to the last initialized state.
+
+```typescript
+function reset(): void
+```
+
+**Example:**
+
+```javascript
+mermaidAPI.setConfig({ theme: 'dark' });
+mermaidAPI.reset(); // Reverts to initialized config
+```
+
+### globalReset()
+
+Reset configuration to default values.
+
+```typescript
+function globalReset(): void
+```
+
+**Example:**
+
+```javascript
+mermaidAPI.globalReset(); // Resets to mermaidAPI.defaultConfig
+```
+
+### getDiagramFromText()
+
+Create a Diagram object from text (internal use).
+
+```typescript
+function getDiagramFromText(
+  text: string,
+  metadata?: { title?: string }
+): Promise<Diagram>
+```
+
+**Example:**
+
+```javascript
+const diagram = await mermaidAPI.getDiagramFromText(
+  'graph TD; A-->B',
+  { title: 'My Diagram' }
+);
+```
+
+## Properties
+
+### defaultConfig
+
+The default Mermaid configuration object.
+
+```typescript
+defaultConfig: MermaidConfig
+```
+
+**Example:**
+
+```javascript
+console.log(mermaidAPI.defaultConfig.theme); // 'default'
+```
+
+## Configuration hierarchy
+
+Mermaid merges configuration from multiple sources:
+
+1. **defaultConfig** - Built-in defaults
+2. **Site config** - Set via `initialize()` or `updateSiteConfig()`
+3. **Diagram directives** - Set in diagram text
+4. **Runtime config** - Set via `setConfig()`
+
+```javascript
+// 1. Default config
+console.log(mermaidAPI.defaultConfig.theme); // 'default'
+
+// 2. Initialize site config
+mermaidAPI.initialize({ theme: 'forest' });
+
+// 3. Diagram with directive
+const diagram = `
+%%{init: {'theme':'dark'}}%%
+graph TD
+  A-->B
+`;
+
+// 4. Runtime override
+mermaidAPI.setConfig({ theme: 'neutral' });
+
+// Final theme used: 'neutral' (runtime takes precedence)
+```
+
+## Implementation details
+
+### Processing flow
+
+The `mermaidAPI.render()` method follows this internal flow:
+
+1. **Preprocess** - Extract directives and configuration from diagram text
+2. **Configure** - Merge configs and apply directives
+3. **Parse** - Create Diagram object from text
+4. **Style** - Generate CSS styles (theme + user styles)
+5. **Render** - Execute diagram-specific renderer
+6. **Sanitize** - Clean SVG based on security level
+7. **Return** - Provide SVG string and bind functions
+
+### Security levels
+
+The `securityLevel` configuration affects rendering:
+
+- **strict** (default) - DOMPurify sanitization
+- **loose** - No sanitization
+- **sandbox** - Render in sandboxed iframe
+
+```javascript
+mermaidAPI.initialize({ securityLevel: 'strict' });
+```
+
+### Text size limits
+
+Diagram text is limited to prevent performance issues:
+
+```javascript
+const MAX_TEXTLENGTH = 50_000; // characters
+```
+
+Exceeding this shows an error diagram:
+
+```
+graph TB;a[Maximum text size in diagram exceeded];style a fill:#faa
+```
+
+Override via configuration:
+
+```javascript
+mermaidAPI.initialize({ maxTextSize: 100_000 });
+```
+
+## Migration guide
+
+### From mermaidAPI to mermaid
+
+**Before:**
+
+```javascript
+import { mermaidAPI } from 'mermaid';
+
+mermaidAPI.initialize({ theme: 'dark' });
+
+const { svg } = await mermaidAPI.render('id', 'graph TD; A-->B');
+document.getElementById('output').innerHTML = svg;
+```
+
+**After:**
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({ theme: 'dark' });
+
+const { svg } = await mermaid.render('id', 'graph TD; A-->B');
+document.getElementById('output').innerHTML = svg;
+```
+
+**Benefits:**
+- Automatic execution queueing
+- Better error handling
+- Future-proof (not deprecated)
+
+## When to use mermaidAPI
+
+<Warning>
+In general, you should **not** use `mermaidAPI` directly. Use the `mermaid` export instead.
+</Warning>
+
+The only valid use cases are:
+
+1. **Contributing to Mermaid** - Working on internal implementation
+2. **Accessing internal utilities** - When no public API exists (consider requesting one)
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="mermaid" icon="diagram-project" href="/api/mermaid">
+    Recommended high-level API
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/config/configuration">
+    Configuration options reference
+  </Card>
+</CardGroup>

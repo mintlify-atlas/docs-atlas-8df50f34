@@ -1,0 +1,269 @@
+---
+title: Flowchart diagrams
+description: Create flowcharts with nodes, edges, and custom shapes to visualize processes and workflows
+---
+
+Flowcharts are composed of **nodes** (geometric shapes) and **edges** (arrows or lines). The Mermaid code defines how nodes and edges are made and accommodates different arrow types, multi-directional arrows, and linking to and from subgraphs.
+
+## Basic example
+
+```mermaid
+flowchart LR
+    Start --> Stop
+```
+
+## Direction
+
+This statement declares the direction of the flowchart. You can orient flowcharts in different directions:
+
+- `TB` or `TD` - Top to bottom
+- `BT` - Bottom to top
+- `RL` - Right to left
+- `LR` - Left to right
+
+```mermaid
+flowchart TD
+    Start --> Stop
+```
+
+<Tip>
+Instead of `flowchart` you can also use `graph`.
+</Tip>
+
+## Node shapes
+
+Mermaid supports a wide variety of node shapes to represent different types of elements in your flowchart.
+
+### Basic shapes
+
+```mermaid
+flowchart LR
+    id1[Rectangle]
+    id2(Rounded edges)
+    id3([Stadium shape])
+    id4[[Subroutine shape]]
+    id5[(Database)]
+    id6((Circle)]
+    id7{Diamond}
+    id8{{Hexagon}}
+```
+
+### Advanced shapes
+
+```mermaid
+flowchart TD
+    id1[/Parallelogram/]
+    id2[\Parallelogram alt\]
+    id3[/Trapezoid\]
+    id4[\Trapezoid alt/]
+    id5(((Double circle)))
+```
+
+### Extended shape syntax (v11.3.0+)
+
+Mermaid introduces 30+ new shapes using a general syntax format:
+
+```mermaid
+flowchart TD
+    A@{ shape: rect, label: "Process" }
+    B@{ shape: diamond, label: "Decision" }
+    C@{ shape: doc, label: "Document" }
+    D@{ shape: delay, label: "Delay" }
+```
+
+<Accordion title="Common shape types">
+- `rect` - Rectangle (process)
+- `rounded` - Rounded rectangle (event)
+- `stadium` - Stadium shape (terminal)
+- `subroutine` - Rectangle with double lines
+- `cylinder` - Database
+- `circle` - Circle (start/end)
+- `diamond` - Diamond (decision)
+- `hexagon` - Hexagon (preparation)
+- `doc` - Document shape
+- `delay` - Half-rounded rectangle
+
+See the full list in the source documentation for all 30+ available shapes.
+</Accordion>
+
+## Links between nodes
+
+Nodes can be connected with different types of links:
+
+### Arrow types
+
+```mermaid
+flowchart LR
+    A --> B
+    C --- D
+    E -.-> F
+    G ==> H
+```
+
+### Links with text
+
+```mermaid
+flowchart LR
+    A-->|text|B
+    C-- text -->D
+    E-. text .->F
+    G == text ==> H
+```
+
+### Chaining links
+
+```mermaid
+flowchart LR
+   A -- text --> B -- text2 --> C
+```
+
+### Multi-directional arrows
+
+```mermaid
+flowchart LR
+    A o--o B
+    B <--> C
+    C x--x D
+```
+
+## Node text formatting
+
+### Unicode text
+
+Use `"` to enclose unicode text:
+
+```mermaid
+flowchart LR
+    id["This ❤ Unicode"]
+```
+
+### Markdown formatting
+
+Use double quotes and backticks to enable markdown:
+
+```mermaid
+---
+config:
+  htmlLabels: false
+---
+flowchart LR
+    markdown["`This **is** _Markdown_`"]
+    newLines["`Line1
+    Line 2
+    Line 3`"]
+    markdown --> newLines
+```
+
+## Subgraphs
+
+You can group nodes into subgraphs:
+
+```mermaid
+flowchart TB
+    c1-->a2
+    subgraph one
+    a1-->a2
+    end
+    subgraph two
+    b1-->b2
+    end
+    subgraph three
+    c1-->c2
+    end
+    one --> two
+    three --> two
+    two --> c2
+```
+
+### Direction in subgraphs
+
+```mermaid
+flowchart LR
+  subgraph TOP
+    direction TB
+    subgraph B1
+        direction RL
+        i1 -->f1
+    end
+    subgraph B2
+        direction BT
+        i2 -->f2
+    end
+  end
+  A --> TOP --> B
+  B1 --> B2
+```
+
+## Styling
+
+### Styling a node
+
+```mermaid
+flowchart LR
+    id1(Start)-->id2(Stop)
+    style id1 fill:#f9f,stroke:#333,stroke-width:4px
+    style id2 fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+```
+
+### Using classes
+
+```mermaid
+flowchart LR
+    A:::someclass --> B
+    classDef someclass fill:#f96
+```
+
+### Styling links
+
+```mermaid
+flowchart LR
+    A e1@==> B
+    A e2@--> C
+    e1@{ curve: linear }
+    e2@{ curve: natural }
+```
+
+## Interaction
+
+You can bind click events to nodes:
+
+```mermaid
+flowchart LR
+    A-->B
+    B-->C
+    C-->D
+    click A callback "Tooltip for a callback"
+    click B "https://www.github.com" "This is a tooltip for a link"
+    click C call callback() "Tooltip for a callback"
+    click D href "https://www.github.com" "This is a tooltip for a link"
+```
+
+<Note>
+This functionality is disabled when using `securityLevel='strict'` and enabled when using `securityLevel='loose'`.
+</Note>
+
+## Comments
+
+Comments must be on their own line and prefaced with `%%`:
+
+```mermaid
+flowchart LR
+%% this is a comment A -- text --> B{node}
+   A -- text --> B -- text2 --> C
+```
+
+## Special characters
+
+Use quotes to include special characters:
+
+```mermaid
+flowchart LR
+    id1["This is the (text) in the box"]
+```
+
+### Entity codes
+
+```mermaid
+flowchart LR
+    A["A double quote:#quot;"] --> B["A dec char:#9829;"]
+```

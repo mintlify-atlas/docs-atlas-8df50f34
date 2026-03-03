@@ -1,0 +1,346 @@
+---
+title: Class diagrams
+description: Model the structure of systems using classes, attributes, operations, and relationships
+---
+
+Class diagrams describe the structure of a system by showing the system's classes, their attributes, operations (or methods), and the relationships among objects.
+
+## Basic example
+
+```mermaid
+---
+title: Animal example
+---
+classDiagram
+    note "From Duck till Zebra"
+    Animal <|-- Duck
+    note for Duck "can fly<br>can swim<br>can dive<br>can help in debugging"
+    Animal <|-- Fish
+    Animal <|-- Zebra
+    Animal : +int age
+    Animal : +String gender
+    Animal: +isMammal()
+    Animal: +mate()
+    class Duck{
+        +String beakColor
+        +swim()
+        +quack()
+    }
+    class Fish{
+        -int sizeInFeet
+        -canEat()
+    }
+    class Zebra{
+        +bool is_wild
+        +run()
+    }
+```
+
+## Define a class
+
+There are two ways to define a class:
+
+### Using the class keyword
+
+```mermaid
+classDiagram
+    class Animal
+    Vehicle <|-- Car
+```
+
+### Class labels
+
+Provide custom labels for classes:
+
+```mermaid
+classDiagram
+    class Animal["Animal with a label"]
+    class Car["Car with *! symbols"]
+    Animal --> Car
+```
+
+Or use backticks:
+
+```mermaid
+classDiagram
+    class `Animal Class!`
+    class `Car Class`
+    `Animal Class!` --> `Car Class`
+```
+
+## Defining members
+
+Mermaid distinguishes between attributes and methods based on parentheses `()`.
+
+### Using colon notation
+
+```mermaid
+classDiagram
+class BankAccount
+BankAccount : +String owner
+BankAccount : +BigDecimal balance
+BankAccount : +deposit(amount)
+BankAccount : +withdrawal(amount)
+```
+
+### Using bracket notation
+
+```mermaid
+classDiagram
+class BankAccount{
+    +String owner
+    +BigDecimal balance
+    +deposit(amount)
+    +withdrawal(amount)
+}
+```
+
+### Return types
+
+```mermaid
+classDiagram
+class BankAccount{
+    +String owner
+    +BigDecimal balance
+    +deposit(amount) bool
+    +withdrawal(amount) int
+}
+```
+
+### Generic types
+
+```mermaid
+classDiagram
+class Square~Shape~{
+    int id
+    List~int~ position
+    setPoints(List~int~ points)
+    getPoints() List~int~
+}
+
+Square : -List~string~ messages
+Square : +setMessages(List~string~ messages)
+Square : +getMessages() List~string~
+```
+
+### Visibility
+
+Describe encapsulation of class members:
+
+- `+` Public
+- `-` Private
+- `#` Protected
+- `~` Package/Internal
+
+Additional classifiers:
+- `*` Abstract (after method)
+- `$` Static (after method or field)
+
+## Defining relationships
+
+Eight different types of relationships are supported:
+
+```mermaid
+classDiagram
+classA <|-- classB : Inheritance
+classC --* classD : Composition
+classE --o classF : Aggregation
+classG --> classH : Association
+classI -- classJ : Link(Solid)
+classK ..> classL : Dependency
+classM ..|> classN : Realization
+classO .. classP : Link(Dashed)
+```
+
+### Labels on relations
+
+```mermaid
+classDiagram
+classA <|-- classB : implements
+classC *-- classD : composition
+classE o-- classF : aggregation
+```
+
+### Two-way relations
+
+```mermaid
+classDiagram
+    Animal <|--|> Zebra
+```
+
+### Lollipop interfaces
+
+```mermaid
+classDiagram
+  class Class01 {
+    int amount
+    draw()
+  }
+  Class01 --() bar
+  Class02 --() bar
+  foo ()-- Class01
+```
+
+## Namespaces
+
+Group classes in namespaces:
+
+```mermaid
+classDiagram
+namespace BaseShapes {
+    class Triangle
+    class Rectangle {
+      double width
+      double height
+    }
+}
+```
+
+## Cardinality / Multiplicity
+
+Indicate the number of instances:
+
+```mermaid
+classDiagram
+    Customer "1" --> "*" Ticket
+    Student "1" --> "1..*" Course
+    Galaxy --> "many" Star : Contains
+```
+
+<Accordion title="Cardinality options">
+- `1` - Only 1
+- `0..1` - Zero or One
+- `1..*` - One or more
+- `*` - Many
+- `n` - n (where n>1)
+- `0..n` - zero to n (where n>1)
+- `1..n` - one to n (where n>1)
+</Accordion>
+
+## Annotations
+
+Annotate classes with markers:
+
+```mermaid
+classDiagram
+class Shape{
+    <<interface>>
+    noOfVertices
+    draw()
+}
+class Color{
+    <<enumeration>>
+    RED
+    BLUE
+    GREEN
+    WHITE
+    BLACK
+}
+```
+
+<Tip>
+Common annotations include:
+- `<<Interface>>`
+- `<<Abstract>>`
+- `<<Service>>`
+- `<<Enumeration>>`
+</Tip>
+
+## Direction
+
+Set the rendering direction:
+
+```mermaid
+classDiagram
+  direction RL
+  class Student {
+    -idCard : IdCard
+  }
+  class IdCard{
+    -id : int
+    -name : string
+  }
+  class Bike{
+    -id : int
+    -name : string
+  }
+  Student "1" --o "1" IdCard : carries
+  Student "1" --o "1" Bike : rides
+```
+
+## Interaction
+
+Bind click events to classes:
+
+```mermaid
+classDiagram
+    class Class01
+    class Class02
+    callback Class01 "callbackFunction" "Callback tooltip"
+    link Class02 "https://www.github.com" "This is a link"
+    class Class03
+    class Class04
+    click Class03 call callbackFunction() "Callback tooltip"
+    click Class04 href "https://www.github.com" "This is a link"
+```
+
+<Note>
+This functionality is disabled when using `securityLevel='strict'`.
+</Note>
+
+## Notes
+
+Add notes to diagrams:
+
+```mermaid
+classDiagram
+    note "This is a general note"
+    note for MyClass "This is a note for a class"
+    class MyClass{
+    }
+```
+
+## Styling
+
+### Styling a node
+
+```mermaid
+classDiagram
+  class Animal
+  class Mineral
+  style Animal fill:#f9f,stroke:#333,stroke-width:4px
+  style Mineral fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+```
+
+### Using classes
+
+```mermaid
+classDiagram
+    class Animal:::someclass
+    classDef someclass fill:#f96
+```
+
+Or with bracket notation:
+
+```mermaid
+classDiagram
+    class Animal:::someclass {
+        -int sizeInFeet
+        -canEat()
+    }
+    classDef someclass fill:#f96
+```
+
+## Comments
+
+Add comments with `%%`:
+
+```mermaid
+classDiagram
+%% This whole line is a comment classDiagram class Shape <<interface>>
+class Shape{
+    <<interface>>
+    noOfVertices
+    draw()
+}
+```

@@ -1,0 +1,247 @@
+---
+title: Quadrant charts
+description: Plot data points on a two-dimensional grid divided into four quadrants for analysis
+---
+
+A quadrant chart is a visual representation of data divided into four quadrants. It plots data points on a two-dimensional grid to identify patterns, trends, and prioritize actions.
+
+## Basic example
+
+```mermaid
+quadrantChart
+    title Reach and engagement of campaigns
+    x-axis Low Reach --> High Reach
+    y-axis Low Engagement --> High Engagement
+    quadrant-1 We should expand
+    quadrant-2 Need to promote
+    quadrant-3 Re-evaluate
+    quadrant-4 May be improved
+    Campaign A: [0.3, 0.6]
+    Campaign B: [0.45, 0.23]
+    Campaign C: [0.57, 0.69]
+    Campaign D: [0.78, 0.34]
+    Campaign E: [0.40, 0.34]
+    Campaign F: [0.35, 0.78]
+```
+
+<Note>
+Point values (x and y) must be in the range 0 to 1.
+</Note>
+
+## Syntax
+
+### Title
+
+Add a title to describe the chart:
+
+```
+quadrantChart
+    title This is a sample example
+```
+
+### X-axis
+
+Define x-axis labels:
+
+```
+x-axis Left Text --> Right Text
+```
+
+Or just the left label:
+
+```
+x-axis Left Text
+```
+
+### Y-axis
+
+Define y-axis labels:
+
+```
+y-axis Bottom Text --> Top Text
+```
+
+Or just the bottom label:
+
+```
+y-axis Bottom Text
+```
+
+### Quadrant labels
+
+Label each quadrant:
+
+```
+quadrant-1 Top Right Text
+quadrant-2 Top Left Text
+quadrant-3 Bottom Left Text
+quadrant-4 Bottom Right Text
+```
+
+### Points
+
+Plot points with x,y coordinates (0-1 range):
+
+```
+Point 1: [0.75, 0.80]
+Point 2: [0.35, 0.24]
+```
+
+## Point styling
+
+### Direct styling
+
+Style individual points:
+
+```mermaid
+quadrantChart
+  title Reach and engagement of campaigns
+  x-axis Low Reach --> High Reach
+  y-axis Low Engagement --> High Engagement
+  quadrant-1 We should expand
+  quadrant-2 Need to promote
+  quadrant-3 Re-evaluate
+  quadrant-4 May be improved
+  Campaign A: [0.9, 0.0] radius: 12
+  Campaign B: [0.8, 0.1] color: #ff3300, radius: 10
+  Campaign C: [0.7, 0.2] radius: 25, color: #00ff33, stroke-color: #10f0f0
+  Campaign D: [0.6, 0.3] radius: 15, stroke-color: #00ff0f, stroke-width: 5px ,color: #ff33f0
+```
+
+### Class styling
+
+Define reusable styles:
+
+```mermaid
+quadrantChart
+  title Reach and engagement of campaigns
+  x-axis Low Reach --> High Reach
+  y-axis Low Engagement --> High Engagement
+  quadrant-1 We should expand
+  quadrant-2 Need to promote
+  quadrant-3 Re-evaluate
+  quadrant-4 May be improved
+  Campaign A: [0.9, 0.0] radius: 12
+  Campaign B:::class1: [0.8, 0.1] color: #ff3300, radius: 10
+  Campaign C: [0.7, 0.2] radius: 25, color: #00ff33, stroke-color: #10f0f0
+  Campaign D: [0.6, 0.3] radius: 15, stroke-color: #00ff0f, stroke-width: 5px ,color: #ff33f0
+  Campaign E:::class2: [0.5, 0.4]
+  Campaign F:::class3: [0.4, 0.5] color: #0000ff
+  classDef class1 color: #109060
+  classDef class2 color: #908342, radius : 10, stroke-color: #310085, stroke-width: 10px
+  classDef class3 color: #f00fff, radius : 10
+```
+
+<Accordion title="Available style properties">
+| Parameter | Description |
+| --------- | ----------- |
+| `color` | Fill color of the point |
+| `radius` | Radius of the point |
+| `stroke-width` | Border width of the point |
+| `stroke-color` | Border color of the point |
+</Accordion>
+
+<Tip>
+Style precedence order:
+1. Direct styles
+2. Class styles
+3. Theme styles
+</Tip>
+
+## Configuration
+
+Customize chart appearance:
+
+```mermaid
+---
+config:
+  quadrantChart:
+    chartWidth: 400
+    chartHeight: 400
+  themeVariables:
+    quadrant1TextFill: "ff0000"
+---
+quadrantChart
+  x-axis Urgent --> Not Urgent
+  y-axis Not Important --> "Important ❤"
+  quadrant-1 Plan
+  quadrant-2 Do
+  quadrant-3 Delegate
+  quadrant-4 Delete
+```
+
+<Accordion title="Chart configuration options">
+| Parameter | Description | Default |
+| --------- | ----------- | ------- |
+| `chartWidth` | Width of the chart | 500 |
+| `chartHeight` | Height of the chart | 500 |
+| `titlePadding` | Top and bottom padding of title | 10 |
+| `titleFontSize` | Title font size | 20 |
+| `quadrantPadding` | Padding outside quadrants | 5 |
+| `quadrantLabelFontSize` | Quadrant text font size | 16 |
+| `quadrantInternalBorderStrokeWidth` | Internal border width | 1 |
+| `quadrantExternalBorderStrokeWidth` | External border width | 2 |
+| `xAxisLabelFontSize` | X-axis text font size | 16 |
+| `xAxisLabelPadding` | X-axis text padding | 5 |
+| `yAxisLabelFontSize` | Y-axis text font size | 16 |
+| `yAxisLabelPadding` | Y-axis text padding | 5 |
+| `pointTextPadding` | Padding between point and text | 5 |
+| `pointLabelFontSize` | Point text font size | 12 |
+| `pointRadius` | Default point radius | 5 |
+</Accordion>
+
+<Accordion title="Theme variables">
+| Variable | Description |
+| -------- | ----------- |
+| `quadrant1Fill` | Top right quadrant fill color |
+| `quadrant2Fill` | Top left quadrant fill color |
+| `quadrant3Fill` | Bottom left quadrant fill color |
+| `quadrant4Fill` | Bottom right quadrant fill color |
+| `quadrant1TextFill` | Top right quadrant text color |
+| `quadrant2TextFill` | Top left quadrant text color |
+| `quadrant3TextFill` | Bottom left quadrant text color |
+| `quadrant4TextFill` | Bottom right quadrant text color |
+| `quadrantPointFill` | Points fill color |
+| `quadrantPointTextFill` | Points text color |
+| `quadrantXAxisTextFill` | X-axis text color |
+| `quadrantYAxisTextFill` | Y-axis text color |
+| `quadrantInternalBorderStrokeFill` | Internal border color |
+| `quadrantExternalBorderStrokeFill` | External border color |
+| `quadrantTitleFill` | Title color |
+</Accordion>
+
+## Examples
+
+### Priority matrix
+
+```mermaid
+quadrantChart
+  title Task Priority Matrix
+  x-axis Low Impact --> High Impact
+  y-axis Low Effort --> High Effort
+  quadrant-1 Major Projects
+  quadrant-2 Quick Wins
+  quadrant-3 Fill-Ins
+  quadrant-4 Thankless Tasks
+  Redesign Homepage: [0.8, 0.7]
+  Fix Bugs: [0.3, 0.2]
+  Add Analytics: [0.6, 0.3]
+  User Research: [0.5, 0.6]
+```
+
+### Product positioning
+
+```mermaid
+quadrantChart
+  title Product Positioning Map
+  x-axis Low Price --> High Price
+  y-axis Low Quality --> High Quality
+  quadrant-1 Premium
+  quadrant-2 Economy
+  quadrant-3 Budget
+  quadrant-4 Overpriced
+  Product A: [0.7, 0.8]
+  Product B: [0.3, 0.3]
+  Product C: [0.5, 0.5]
+  Product D: [0.8, 0.4]
+```

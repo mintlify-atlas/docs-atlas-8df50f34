@@ -1,0 +1,298 @@
+---
+title: Treemap diagrams
+description: Display hierarchical data as nested rectangles with proportional sizing
+---
+
+Treemap diagrams display hierarchical data as a set of nested rectangles. Each branch of the tree is represented by a rectangle, which is then tiled with smaller rectangles representing sub-branches. The size of each rectangle is proportional to the value it represents.
+
+<Note>
+This is a new diagram type in Mermaid. Its syntax may evolve in future versions. Use the `treemap-beta` keyword.
+</Note>
+
+## When to use treemaps
+
+Treemap diagrams are particularly useful for:
+
+- Visualizing hierarchical data structures
+- Comparing proportions between categories
+- Displaying large amounts of hierarchical data in limited space
+- Identifying patterns and outliers in hierarchical data
+- Showing file system disk usage
+- Representing budget allocations or market shares
+
+## Basic treemap
+
+This example shows a simple two-level hierarchy:
+
+```mermaid
+treemap-beta
+"Category A"
+    "Item A1": 10
+    "Item A2": 20
+"Category B"
+    "Item B1": 15
+    "Item B2": 25
+```
+
+## Syntax overview
+
+### Node definition
+
+Treemap nodes are defined using:
+
+- **Section/parent nodes**: Quoted text without values `"Section Name"`
+- **Leaf nodes**: Quoted text with values `"Leaf Name": value`
+- **Hierarchy**: Created using indentation (spaces or tabs)
+
+### Basic structure
+
+```
+treemap-beta
+"Section 1"
+    "Leaf 1.1": 12
+    "Section 1.2"
+      "Leaf 1.2.1": 12
+"Section 2"
+    "Leaf 2.1": 20
+    "Leaf 2.2": 25
+```
+
+## Hierarchical example
+
+This example shows a product hierarchy with multiple levels:
+
+```mermaid
+treemap-beta
+"Products"
+    "Electronics"
+        "Phones": 50
+        "Computers": 30
+        "Accessories": 20
+    "Clothing"
+        "Men's": 40
+        "Women's": 40
+```
+
+## Styling nodes
+
+Use the `:::class` syntax to apply custom styles:
+
+```mermaid
+treemap-beta
+"Section 1"
+    "Leaf 1.1": 12
+    "Section 1.2":::class1
+      "Leaf 1.2.1": 12
+"Section 2"
+    "Leaf 2.1": 20:::class1
+    "Leaf 2.2": 25
+    "Leaf 2.3": 12
+
+classDef class1 fill:red,color:blue,stroke:#FFD600;
+```
+
+## Using classDef
+
+Define custom styles with the `classDef` syntax:
+
+```mermaid
+treemap-beta
+"Main"
+    "A": 20
+    "B":::important
+        "B1": 10
+        "B2": 15
+    "C": 5
+
+classDef important fill:#f96,stroke:#333,stroke-width:2px;
+```
+
+## Theme configuration
+
+Customize colors using theme settings:
+
+```mermaid
+---
+config:
+    theme: 'forest'
+---
+treemap-beta
+"Category A"
+    "Item A1": 10
+    "Item A2": 20
+"Category B"
+    "Item B1": 15
+    "Item B2": 25
+```
+
+## Diagram padding
+
+Adjust spacing around the diagram:
+
+```mermaid
+---
+config:
+  treemap:
+    diagramPadding: 200
+---
+treemap-beta
+"Category A"
+    "Item A1": 10
+    "Item A2": 20
+"Category B"
+    "Item B1": 15
+    "Item B2": 25
+```
+
+## Value formatting
+
+<Accordion title="Formatting options">
+
+Values can be formatted using D3's format specifiers:
+
+- `,` - Thousands separator (default)
+- `$` - Dollar sign
+- `.1f` - One decimal place
+- `.1%` - Percentage with one decimal
+- `$0,0` - Dollar sign with thousands separator
+- `$.2f` - Dollar sign with 2 decimals
+- `$,.2f` - Dollar sign with thousands separator and 2 decimals
+
+</Accordion>
+
+### Currency formatting
+
+```mermaid
+---
+config:
+  treemap:
+    valueFormat: '$0,0'
+---
+treemap-beta
+"Budget"
+    "Operations"
+        "Salaries": 700000
+        "Equipment": 200000
+        "Supplies": 100000
+    "Marketing"
+        "Advertising": 400000
+        "Events": 100000
+```
+
+### Percentage formatting
+
+```mermaid
+---
+config:
+  treemap:
+    valueFormat: '$.1%'
+---
+treemap-beta
+"Market Share"
+    "Company A": 0.35
+    "Company B": 0.25
+    "Company C": 0.15
+    "Others": 0.25
+```
+
+## Configuration options
+
+<Accordion title="Available configuration options">
+
+| Option         | Description                                     | Default |
+| -------------- | ----------------------------------------------- | ------- |
+| useMaxWidth    | Scale diagram to 100% width                     | true    |
+| padding        | Internal padding between nodes                  | 10      |
+| diagramPadding | Padding around the entire diagram               | 8       |
+| showValues     | Whether to show values in the treemap           | true    |
+| nodeWidth      | Width of nodes                                  | 100     |
+| nodeHeight     | Height of nodes                                 | 40      |
+| borderWidth    | Width of borders                                | 1       |
+| valueFontSize  | Font size for values                            | 12      |
+| labelFontSize  | Font size for labels                            | 14      |
+| valueFormat    | Format for values (D3 format specifiers)        | ','     |
+
+</Accordion>
+
+## Common use cases
+
+### Financial data visualization
+
+```mermaid
+treemap-beta
+"Annual Budget"
+    "Engineering"
+        "Development": 450000
+        "QA": 150000
+        "DevOps": 200000
+    "Sales"
+        "Direct Sales": 300000
+        "Partners": 100000
+    "Marketing"
+        "Digital": 250000
+        "Events": 150000
+```
+
+### File system analysis
+
+```mermaid
+treemap-beta
+"Disk Usage"
+    "Documents"
+        "Projects": 2500
+        "Personal": 800
+    "Media"
+        "Photos": 15000
+        "Videos": 35000
+        "Music": 5000
+    "System"
+        "Applications": 12000
+        "Libraries": 3000
+```
+
+### Product hierarchy
+
+```mermaid
+treemap-beta
+"Sales by Product"
+    "Electronics"
+        "Laptops": 125000
+        "Phones": 95000
+        "Tablets": 45000
+    "Home & Garden"
+        "Furniture": 78000
+        "Appliances": 62000
+    "Clothing"
+        "Men's": 54000
+        "Women's": 67000
+        "Kids": 33000
+```
+
+## Best practices
+
+<Tip>
+Treemap diagrams work best when:
+- Data has a natural hierarchy
+- You need to show proportions at multiple levels
+- Space is limited but data is extensive
+- Values are all positive numbers
+</Tip>
+
+## Limitations
+
+<Note>
+Treemap diagrams have some limitations:
+
+- Very small values may be difficult to see or label
+- Deep hierarchies (many levels) can be challenging to represent clearly
+- Not well suited for negative values
+- Comparing exact values between non-adjacent rectangles is difficult
+</Note>
+
+## Related diagrams
+
+If treemap diagrams don't suit your needs, consider:
+
+- [**Pie charts**](/diagrams/pie) - For simple proportion comparisons without hierarchy
+- [**Sankey diagrams**](/diagrams/sankey) - For flow-based hierarchical data
+- **Sunburst diagrams** - For radial hierarchical layouts (future Mermaid feature)

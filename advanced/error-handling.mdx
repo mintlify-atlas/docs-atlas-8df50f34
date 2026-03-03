@@ -1,0 +1,562 @@
+---
+title: Error handling and debugging
+description: Learn how to handle errors, debug issues, and troubleshoot problems in Mermaid diagrams
+---
+
+## Overview
+
+Mermaid provides comprehensive error handling mechanisms to help you identify and resolve issues with diagram syntax, rendering, and configuration. This guide covers error detection, handling strategies, and debugging techniques.
+
+## Error types
+
+### UnknownDiagramError
+
+Thrown when Mermaid cannot detect the diagram type (`errors.ts:1`):
+
+```typescript
+export class UnknownDiagramError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnknownDiagramError';
+  }
+}
+```
+
+This error occurs when the diagram text doesn't match any registered diagram detector:
+
+```javascript
+try {
+  const type = mermaid.detectType('invalid diagram text');
+} catch (error) {
+  if (error instanceof UnknownDiagramError) {
+    console.error('Unknown diagram type:', error.message);
+  }
+}
+```
+
+### Parse errors
+
+Parse errors occur when diagram syntax is invalid. These are caught during the parsing phase.
+
+### Render errors
+
+Render errors happen during diagram rendering and may be caused by configuration issues or browser limitations.
+
+## The parse function
+
+Use `mermaid.parse()` to validate diagram syntax without rendering (`mermaidAPI.ts:67`):
+
+```typescript
+async function parse(
+  text: string,
+  parseOptions?: ParseOptions
+): Promise<ParseResult | false>
+```
+
+### Basic validation
+
+```javascript
+// Validate and get diagram type
+try {
+  const result = await mermaid.parse('flowchart TD\nA-->B');
+  console.log(result); // { diagramType: 'flowchart' }
+} catch (error) {
+  console.error('Invalid syntax:', error);
+}
+```
+
+### Suppressing errors
+
+Use `suppressErrors: true` to return `false` instead of throwing:
+
+```javascript
+const isValid = await mermaid.parse('wrong syntax', { suppressErrors: true });
+if (isValid) {
+  console.log('Valid diagram:', isValid.diagramType);
+} else {
+  console.log('Invalid diagram');
+}
+```
+
+### Examples from source
+
+From `mermaid.ts:336`:
+
+```javascript
+/**
+ * @example
+ * ```js
+ * console.log(await mermaid.parse('flowchart \n a --> b'));
+ * // { diagramType: 'flowchart-v2' }
+ * console.log(await mermaid.parse('wrong \n a --> b', { suppressErrors: true }));
+ * // false
+ * console.log(await mermaid.parse('wrong \n a --> b', { suppressErrors: false }));
+ * // throws Error
+ * console.log(await mermaid.parse('wrong \n a --> b'));
+ * // throws Error
+ * ```
+ */
+```
+
+## Error handling in render
+
+The render function provides built-in error handling (`mermaidAPI.ts:392`):
+
+```javascript
+let diag: Diagram;
+let parseEncounteredException;
+
+try {
+  diag = await Diagram.fromText(text, { title: processed.title });
+} catch (error) {
+  if (config.suppressErrorRendering) {
+    removeTempElements();
+    throw error;
+  }
+  diag = await Diagram.fromText('error');
+  parseEncounteredException = error;
+}
+
+// ... render the diagram ...
+
+try {
+  await diag.renderer.draw(text, id, injected.version, diag);
+} catch (e) {
+  if (config.suppressErrorRendering) {
+    removeTempElements();
+  } else {
+    errorRenderer.draw(text, id, injected.version);
+  }
+  throw e;
+}
+
+if (parseEncounteredException) {
+  throw parseEncounteredException;
+}
+```
+
+### Suppress error rendering
+
+Control whether error diagrams are displayed:
+
+```javascript
+mermaid.initialize({
+  suppressErrorRendering: true  // Don't show error diagram, just throw
+});
+
+try {
+  await mermaid.render('id', 'invalid syntax');
+} catch (error) {
+  // Handle error yourself
+  console.error('Render failed:', error);
+  document.getElementById('errorDisplay').textContent = error.message;
+}
+```
+
+## Custom error handlers
+
+### Setting a parse error handler
+
+Set a global error handler for parse errors (`mermaid.ts:304`):
+
+```javascript
+mermaid.parseError = function (err, hash) {
+  // Custom error handling
+  console.error('Parse error:', err);
+  displayErrorInGui(err);
+};
+
+// Or use the helper function
+mermaid.setParseErrorHandler(function (err, hash) {
+  console.error('Parse error:', err, hash);
+});
+```
+
+### DetailedError interface
+
+Mermaid provides detailed error information:
+
+```typescript
+interface DetailedError {
+  str: string;        // Error message
+  message: string;    // Error message (duplicate for compatibility)
+  hash: string;       // Error identifier/type
+  error: Error;       // Original error object
+}
+```
+
+### Error handling in run()
+
+The `run()` function handles errors from multiple diagrams (`mermaid.ts:64`):
+
+```javascript
+const handleError = (error: unknown, errors: DetailedError[], parseError?: ParseErrorFunction) => {
+  log.warn(error);
+  if (isDetailedError(error)) {
+    if (parseError) {
+      parseError(error.str, error.hash);
+    }
+    errors.push({ ...error, message: error.str, error });
+  } else {
+    if (parseError) {
+      parseError(error);
+    }
+    if (error instanceof Error) {
+      errors.push({
+        str: error.message,
+        message: error.message,
+        hash: error.name,
+        error,
+      });
+    }
+  }
+};
+```
+
+## Using suppressErrors in run()
+
+When rendering multiple diagrams with `mermaid.run()`, suppress errors to continue processing:
+
+```javascript
+await mermaid.run({
+  querySelector: '.mermaid',
+  suppressErrors: true  // Don't throw on first error
+});
+```
+
+From `mermaid.ts:109`:
+
+```javascript
+const run = async function (options: RunOptions = { querySelector: '.mermaid' }) {
+  try {
+    await runThrowsErrors(options);
+  } catch (e) {
+    if (isDetailedError(e)) {
+      log.error(e.str);
+    }
+    if (mermaid.parseError) {
+      mermaid.parseError(e as string);
+    }
+    if (!options.suppressErrors) {
+      log.error('Use the suppressErrors option to suppress these errors');
+      throw e;
+    }
+  }
+};
+```
+
+## Debugging techniques
+
+### Enable debug logging
+
+```javascript
+mermaid.initialize({
+  logLevel: 'debug'
+});
+```
+
+Log levels: `'fatal'`, `'error'`, `'warn'`, `'info'`, `'debug'`, `'trace'`
+
+### Check diagram type detection
+
+Verify which diagram type Mermaid detects:
+
+```javascript
+import mermaid from 'mermaid';
+
+const definition = `sequenceDiagram
+  Alice->>Bob: Hello`;
+
+try {
+  const type = mermaid.detectType(definition);
+  console.log('Detected type:', type); // 'sequence'
+} catch (error) {
+  console.error('Detection failed:', error);
+}
+```
+
+### Validate before rendering
+
+<Steps>
+
+<Step title="Parse the diagram">
+
+```javascript
+const text = document.getElementById('diagram-input').value;
+const parseResult = await mermaid.parse(text, { suppressErrors: true });
+```
+
+</Step>
+
+<Step title="Check validation result">
+
+```javascript
+if (!parseResult) {
+  console.error('Invalid diagram syntax');
+  showError('Please check your diagram syntax');
+  return;
+}
+
+console.log('Valid diagram type:', parseResult.diagramType);
+```
+
+</Step>
+
+<Step title="Render the diagram">
+
+```javascript
+try {
+  const { svg, bindFunctions } = await mermaid.render('diagram-id', text);
+  document.getElementById('output').innerHTML = svg;
+  bindFunctions?.(document.getElementById('output'));
+} catch (error) {
+  console.error('Render failed:', error);
+  showError('Failed to render diagram');
+}
+```
+
+</Step>
+
+</Steps>
+
+## Common errors and solutions
+
+### Text size exceeded
+
+**Error**: `Maximum text size in diagram exceeded`
+
+**Cause**: Diagram text exceeds `maxTextSize` limit (default: 50,000 characters)
+
+**Solution**:
+```javascript
+mermaid.initialize({
+  maxTextSize: 100000  // Increase limit
+});
+```
+
+<Warning>
+Large diagrams may cause performance issues. Consider breaking them into smaller diagrams.
+</Warning>
+
+### Unknown diagram type
+
+**Error**: `UnknownDiagramError: No diagram type detected`
+
+**Cause**: The diagram syntax doesn't match any registered diagram type
+
+**Solutions**:
+1. Check the diagram keyword (e.g., `flowchart`, `sequenceDiagram`)
+2. Ensure the diagram type is registered
+3. Remove comments and directives that may interfere with detection
+
+```javascript
+// Bad
+flowchar TD  // Typo
+A-->B
+
+// Good
+flowchart TD
+A-->B
+```
+
+### Parse errors with directives
+
+**Error**: Parse fails with `%%init%%` directive
+
+**Cause**: Directive syntax is incorrect
+
+**Solution**:
+```javascript
+// Bad
+%%init: { "theme": "dark" }%%
+
+// Good
+%%{init: {"theme": "dark"}}%%
+flowchart TD
+A-->B
+```
+
+## Error recovery patterns
+
+### Graceful degradation
+
+```javascript
+const renderDiagram = async (text, containerId) => {
+  const container = document.getElementById(containerId);
+  
+  try {
+    // Try to parse first
+    const parseResult = await mermaid.parse(text);
+    console.log('Valid diagram:', parseResult.diagramType);
+    
+    // Render
+    const { svg, bindFunctions } = await mermaid.render(containerId, text);
+    container.innerHTML = svg;
+    bindFunctions?.(container);
+    
+    return { success: true };
+  } catch (error) {
+    // Show error message instead of diagram
+    container.innerHTML = `
+      <div style="color: red; border: 1px solid red; padding: 10px;">
+        <strong>Error rendering diagram:</strong><br>
+        ${error.message}
+      </div>
+    `;
+    
+    // Log for debugging
+    console.error('Render error:', error);
+    
+    return { success: false, error };
+  }
+};
+```
+
+### Retry with fallback
+
+```javascript
+const renderWithFallback = async (text, containerId) => {
+  try {
+    // Try primary rendering
+    return await mermaid.render(containerId, text);
+  } catch (error) {
+    console.warn('Primary render failed, trying fallback:', error);
+    
+    // Try with stricter security
+    const originalConfig = mermaid.getConfig();
+    mermaid.initialize({
+      ...originalConfig,
+      securityLevel: 'strict',
+      suppressErrorRendering: false
+    });
+    
+    try {
+      return await mermaid.render(containerId, text);
+    } finally {
+      // Restore original config
+      mermaid.initialize(originalConfig);
+    }
+  }
+};
+```
+
+### User-friendly error messages
+
+```javascript
+const ERROR_MESSAGES = {
+  UnknownDiagramError: 'The diagram type is not recognized. Please check the first line of your diagram.',
+  ParseError: 'There is a syntax error in your diagram. Please check the syntax.',
+  RenderError: 'Failed to render the diagram. This may be a browser compatibility issue.',
+};
+
+const getUserFriendlyError = (error) => {
+  if (error instanceof UnknownDiagramError) {
+    return ERROR_MESSAGES.UnknownDiagramError;
+  }
+  if (error.name === 'ParseError') {
+    return ERROR_MESSAGES.ParseError;
+  }
+  return ERROR_MESSAGES.RenderError;
+};
+
+try {
+  await mermaid.render('id', text);
+} catch (error) {
+  const userMessage = getUserFriendlyError(error);
+  alert(userMessage);
+  console.error('Technical details:', error);
+}
+```
+
+## Testing and validation
+
+### Automated validation
+
+```javascript
+const validateDiagrams = async (diagrams) => {
+  const results = [];
+  
+  for (const { name, text } of diagrams) {
+    const result = await mermaid.parse(text, { suppressErrors: true });
+    
+    results.push({
+      name,
+      valid: !!result,
+      diagramType: result ? result.diagramType : null
+    });
+  }
+  
+  return results;
+};
+
+// Usage
+const diagrams = [
+  { name: 'Flow 1', text: 'flowchart TD\nA-->B' },
+  { name: 'Sequence 1', text: 'sequenceDiagram\nA->>B:Hello' },
+  { name: 'Invalid', text: 'invalid diagram' }
+];
+
+const results = await validateDiagrams(diagrams);
+console.table(results);
+```
+
+## Logging and monitoring
+
+### Custom logger
+
+```javascript
+import { setLogLevel, log } from 'mermaid';
+
+// Set log level
+setLogLevel('debug');
+
+// Use built-in logger
+log.debug('Debug message');
+log.info('Info message');
+log.warn('Warning message');
+log.error('Error message');
+```
+
+### Error tracking integration
+
+```javascript
+import * as Sentry from '@sentry/browser';
+
+mermaid.parseError = function (err, hash) {
+  // Log to console
+  console.error('Mermaid parse error:', err);
+  
+  // Send to error tracking
+  Sentry.captureException(err, {
+    tags: {
+      component: 'mermaid',
+      errorType: 'parse',
+      hash: hash
+    }
+  });
+};
+
+const renderWithTracking = async (text, id) => {
+  try {
+    return await mermaid.render(id, text);
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        component: 'mermaid',
+        errorType: 'render'
+      },
+      extra: {
+        diagramText: text,
+        diagramId: id
+      }
+    });
+    throw error;
+  }
+};
+```
+
+## Related topics
+
+- [Advanced rendering options](/advanced/rendering-options)
+- [Configuration options](/config/configuration)
+- [Debugging with the Live Editor](https://mermaid.live/)

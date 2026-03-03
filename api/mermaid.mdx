@@ -1,0 +1,515 @@
+---
+title: mermaid
+description: High-level API for rendering and parsing Mermaid diagrams
+---
+
+The `mermaid` export is the primary API for integrating Mermaid into your application. It provides a queue-based, user-friendly interface for rendering diagrams, parsing syntax, and managing configuration.
+
+## Import
+
+```javascript
+import mermaid from 'mermaid';
+```
+
+## Interface
+
+```typescript
+interface Mermaid {
+  // Configuration
+  initialize(config: MermaidConfig): void;
+  startOnLoad: boolean;
+
+  // Core methods
+  render(id: string, text: string, container?: Element): Promise<RenderResult>;
+  parse(text: string, parseOptions?: ParseOptions): Promise<ParseResult>;
+  run(options?: RunOptions): Promise<void>;
+
+  // Registration
+  registerExternalDiagrams(diagrams: ExternalDiagramDefinition[], options?: { lazyLoad?: boolean }): Promise<void>;
+  registerLayoutLoaders(loaders: LayoutLoaderDefinition[]): void;
+  registerIconPacks(iconPacks: IconPacks): void;
+
+  // Utilities
+  detectType(text: string): string;
+  getRegisteredDiagramsMetadata(): Pick<ExternalDiagramDefinition, 'id'>[];
+  setParseErrorHandler(handler: (err: any, hash: any) => void): void;
+
+  // Deprecated
+  init(config?: MermaidConfig, nodes?: string | HTMLElement | NodeListOf<HTMLElement>, callback?: (id: string) => unknown): Promise<void>;
+  parseError?: ParseErrorFunction;
+  contentLoaded(): void;
+  mermaidAPI: typeof mermaidAPI; // Internal use only
+}
+```
+
+## Core methods
+
+### initialize()
+
+Configure Mermaid before rendering diagrams.
+
+```typescript
+function initialize(config: MermaidConfig): void
+```
+
+<Note>
+Call `initialize()` before using `run()` or `render()`. Configuration set here applies to all subsequent operations.
+</Note>
+
+**Example:**
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({
+  theme: 'dark',
+  logLevel: 'error',
+  securityLevel: 'strict',
+  startOnLoad: false,
+  flowchart: {
+    useMaxWidth: true,
+    htmlLabels: true
+  }
+});
+```
+
+**Parameters:**
+
+- `config` - Configuration object. See [Configuration](/config/configuration) for all options.
+
+### render()
+
+Render a diagram to SVG code programmatically.
+
+```typescript
+function render(
+  id: string,
+  text: string,
+  container?: Element
+): Promise<RenderResult>
+```
+
+**Parameters:**
+
+- `id` - Unique identifier for the SVG element
+- `text` - Mermaid diagram definition
+- `container` (optional) - HTML element where the SVG will be inserted
+
+**Returns:** `Promise<RenderResult>`
+
+```typescript
+interface RenderResult {
+  svg: string;                                    // SVG code
+  diagramType: string;                            // e.g., 'flowchart', 'sequence'
+  bindFunctions?: (element: Element) => void;     // Bind event listeners
+}
+```
+
+**Example:**
+
+```javascript
+const element = document.querySelector('#graphDiv');
+const graphDefinition = 'graph TB\na-->b';
+
+const { svg, bindFunctions } = await mermaid.render('graphDiv', graphDefinition);
+element.innerHTML = svg;
+bindFunctions?.(element);
+```
+
+<Note>
+Multiple calls to `render()` are automatically queued and executed serially to prevent race conditions.
+</Note>
+
+**With container element:**
+
+```javascript
+const container = document.querySelector('#diagram-container');
+
+const { svg, bindFunctions } = await mermaid.render(
+  'myDiagram',
+  'sequenceDiagram\nAlice->>Bob: Hello',
+  container
+);
+
+// SVG is already inserted into container
+bindFunctions?.(container);
+```
+
+### parse()
+
+Validate diagram syntax and return metadata.
+
+```typescript
+function parse(
+  text: string,
+  parseOptions?: ParseOptions
+): Promise<ParseResult | false>
+```
+
+**Parameters:**
+
+- `text` - Mermaid diagram definition to parse
+- `parseOptions` (optional)
+  - `suppressErrors?: boolean` - Return `false` instead of throwing on error
+
+**Returns:** `Promise<ParseResult>` or `Promise<false>` when `suppressErrors: true`
+
+```typescript
+interface ParseResult {
+  diagramType: string;         // Detected diagram type
+  config: MermaidConfig;       // Config from frontmatter/directives
+}
+```
+
+**Example:**
+
+```javascript
+// Throws on invalid syntax
+try {
+  const result = await mermaid.parse('flowchart TD\nA-->B');
+  console.log(result.diagramType); // 'flowchart-v2'
+} catch (error) {
+  console.error('Invalid syntax');
+}
+
+// Suppress errors
+const result = await mermaid.parse('invalid syntax', { suppressErrors: true });
+if (result === false) {
+  console.log('Invalid diagram');
+} else {
+  console.log('Valid:', result.diagramType);
+}
+```
+
+**Validation workflow:**
+
+```javascript
+async function validateDiagram(code) {
+  const result = await mermaid.parse(code, { suppressErrors: true });
+
+  if (result === false) {
+    return { valid: false };
+  }
+
+  return {
+    valid: true,
+    type: result.diagramType,
+    config: result.config
+  };
+}
+```
+
+### run()
+
+Find and render all diagrams in the DOM.
+
+```typescript
+function run(options?: RunOptions): Promise<void>
+```
+
+**Parameters:**
+
+- `options` (optional)
+
+```typescript
+interface RunOptions {
+  querySelector?: string;                      // Default: '.mermaid'
+  nodes?: ArrayLike<HTMLElement>;             // Specific nodes to render
+  postRenderCallback?: (id: string) => unknown;
+  suppressErrors?: boolean;                    // Default: false
+}
+```
+
+**Example - Basic usage:**
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({ theme: 'forest' });
+await mermaid.run();
+```
+
+**Example - Custom selector:**
+
+```javascript
+// Render all elements with class 'diagram'
+await mermaid.run({ querySelector: '.diagram' });
+```
+
+**Example - Specific nodes:**
+
+```javascript
+const nodes = document.querySelectorAll('.my-diagram');
+await mermaid.run({ nodes });
+```
+
+**Example - Post-render callback:**
+
+```javascript
+await mermaid.run({
+  postRenderCallback: (id) => {
+    console.log(`Rendered diagram: ${id}`);
+    // Add custom event listeners, analytics, etc.
+  }
+});
+```
+
+**Example - Error handling:**
+
+```javascript
+// Suppress errors (log but don't throw)
+await mermaid.run({ suppressErrors: true });
+
+// Or catch errors
+try {
+  await mermaid.run();
+} catch (error) {
+  console.error('Rendering failed:', error);
+}
+```
+
+<Note>
+`run()` skips elements that have already been processed (marked with `data-processed` attribute). You can call it multiple times safely.
+</Note>
+
+## Registration methods
+
+### registerExternalDiagrams()
+
+Register custom diagram types.
+
+```typescript
+function registerExternalDiagrams(
+  diagrams: ExternalDiagramDefinition[],
+  options?: { lazyLoad?: boolean }
+): Promise<void>
+```
+
+**Parameters:**
+
+- `diagrams` - Array of diagram definitions
+- `options.lazyLoad` - If `false`, load immediately. Default: `true`
+
+**Example:**
+
+```javascript
+import mermaid from 'mermaid';
+
+const customDiagram = {
+  id: 'custom',
+  detector: (txt) => txt.match(/^\s*custom/) !== null,
+  loader: async () => {
+    return {
+      diagram: {
+        parser: customParser,
+        db: customDb,
+        renderer: customRenderer,
+        styles: customStyles
+      }
+    };
+  }
+};
+
+await mermaid.registerExternalDiagrams([customDiagram]);
+```
+
+### registerLayoutLoaders()
+
+Register custom layout algorithms.
+
+```typescript
+function registerLayoutLoaders(loaders: LayoutLoaderDefinition[]): void
+```
+
+**Example:**
+
+```javascript
+mermaid.registerLayoutLoaders([
+  {
+    name: 'custom-layout',
+    loader: async () => await import('./custom-layout.js'),
+    algorithm: 'custom'
+  }
+]);
+```
+
+### registerIconPacks()
+
+Register custom icon packs for use in diagrams.
+
+```typescript
+function registerIconPacks(iconPacks: Record<string, IconPack>): void
+```
+
+**Example:**
+
+```javascript
+mermaid.registerIconPacks({
+  'my-icons': {
+    loader: async () => {
+      // Return icon data
+    }
+  }
+});
+```
+
+## Utility methods
+
+### detectType()
+
+Detect the diagram type from text.
+
+```typescript
+function detectType(text: string): string
+```
+
+**Example:**
+
+```javascript
+const type = mermaid.detectType('graph TD\nA-->B');
+console.log(type); // 'flowchart-v2'
+
+const type2 = mermaid.detectType('sequenceDiagram\nAlice->>Bob: Hi');
+console.log(type2); // 'sequence'
+```
+
+### getRegisteredDiagramsMetadata()
+
+Get metadata for all registered diagram types.
+
+```typescript
+function getRegisteredDiagramsMetadata(): Pick<ExternalDiagramDefinition, 'id'>[]
+```
+
+**Example:**
+
+```javascript
+const diagrams = mermaid.getRegisteredDiagramsMetadata();
+console.log(diagrams.map(d => d.id));
+// ['flowchart', 'sequence', 'class', 'state', ...]
+```
+
+### setParseErrorHandler()
+
+Set a global error handler for parse errors.
+
+```typescript
+function setParseErrorHandler(handler: (err: any, hash: any) => void): void
+```
+
+**Example:**
+
+```javascript
+mermaid.setParseErrorHandler((err, hash) => {
+  console.error('Parse error:', err);
+  // Display error in UI
+  document.getElementById('error-display').textContent = err;
+});
+```
+
+## Properties
+
+### startOnLoad
+
+Control whether Mermaid automatically renders diagrams on page load.
+
+```typescript
+startOnLoad: boolean // Default: true
+```
+
+**Example:**
+
+```javascript
+import mermaid from 'mermaid';
+
+// Disable auto-rendering
+mermaid.startOnLoad = false;
+```
+
+<Note>
+It's better to use `initialize({ startOnLoad: false })` instead of setting this property directly.
+</Note>
+
+## Deprecated methods
+
+### init()
+
+<Warning>
+Deprecated. Use `initialize()` and `run()` instead.
+</Warning>
+
+```typescript
+function init(
+  config?: MermaidConfig,
+  nodes?: string | HTMLElement | NodeListOf<HTMLElement>,
+  callback?: (id: string) => unknown
+): Promise<void>
+```
+
+**Migration:**
+
+```javascript
+// Old way
+await mermaid.init({ theme: 'dark' }, '.diagram');
+
+// New way
+mermaid.initialize({ theme: 'dark' });
+await mermaid.run({ querySelector: '.diagram' });
+```
+
+## Complete example
+
+```javascript
+import mermaid from 'mermaid';
+
+// 1. Initialize configuration
+mermaid.initialize({
+  theme: 'dark',
+  logLevel: 'error',
+  securityLevel: 'strict',
+  startOnLoad: false
+});
+
+// 2. Validate diagram syntax
+const code = `
+flowchart TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Action]
+  B -->|No| D[End]
+`;
+
+const parseResult = await mermaid.parse(code, { suppressErrors: true });
+if (parseResult === false) {
+  console.error('Invalid diagram syntax');
+  return;
+}
+
+console.log('Diagram type:', parseResult.diagramType);
+
+// 3. Render programmatically
+const element = document.querySelector('#diagram-container');
+const { svg, bindFunctions } = await mermaid.render('myDiagram', code);
+
+element.innerHTML = svg;
+bindFunctions?.(element);
+
+// 4. Or render all diagrams in page
+await mermaid.run({
+  querySelector: '.mermaid',
+  postRenderCallback: (id) => {
+    console.log(`Rendered: ${id}`);
+  },
+  suppressErrors: false
+});
+```
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="mermaidAPI" icon="code" href="/api/mermaid-api">
+    Lower-level API (internal use)
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/config/configuration">
+    Configuration options reference
+  </Card>
+</CardGroup>

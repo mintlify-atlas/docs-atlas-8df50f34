@@ -1,0 +1,150 @@
+---
+title: run()
+---
+
+Finds and renders all Mermaid diagrams in the document. This method processes elements matching a selector (default: `.mermaid`), converting their text content into SVG diagrams.
+
+## Signature
+
+```typescript
+async function run(options?: RunOptions): Promise<void>
+```
+
+## Parameters
+
+<ParamField path="options" type="RunOptions">
+  Optional configuration for the run operation.
+
+  <Expandable title="properties">
+    <ParamField path="querySelector" type="string" default=".mermaid">
+      CSS selector for finding elements to render. Only used if `nodes` is not specified.
+    </ParamField>
+
+    <ParamField path="nodes" type="ArrayLike<HTMLElement>">
+      Specific nodes to render. If provided, `querySelector` is ignored.
+    </ParamField>
+
+    <ParamField path="postRenderCallback" type="(id: string) => unknown">
+      Callback function called after each diagram is rendered, receiving the diagram's ID.
+    </ParamField>
+
+    <ParamField path="suppressErrors" type="boolean" default={false}>
+      If `true`, errors are logged to console but not thrown.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return value
+
+`Promise<void>` - Resolves when all diagrams have been rendered.
+
+## Behavior
+
+- Processes elements sequentially, not in parallel
+- Sets `data-processed="true"` attribute on rendered elements
+- Skips elements that already have `data-processed` attribute
+- Generates unique IDs for diagrams using format `mermaid-{n}`
+- Decodes HTML entities and normalizes whitespace in diagram definitions
+- Replaces element's `innerHTML` with rendered SVG
+- Throws first error encountered unless `suppressErrors` is `true`
+
+## Examples
+
+### Basic usage
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({ theme: 'dark' });
+await mermaid.run();
+```
+
+### Custom selector
+
+```javascript
+// Render all elements with class "diagram"
+await mermaid.run({
+  querySelector: '.diagram'
+});
+```
+
+### Specific nodes
+
+```javascript
+// Render only specific elements
+const nodes = document.querySelectorAll('.custom-mermaid');
+await mermaid.run({
+  nodes: nodes
+});
+```
+
+### With callback
+
+```javascript
+// Track rendered diagrams
+await mermaid.run({
+  postRenderCallback: (id) => {
+    console.log(`Rendered diagram: ${id}`);
+    // Perform additional operations
+  }
+});
+```
+
+### Error suppression
+
+```javascript
+// Continue rendering even if some diagrams fail
+await mermaid.run({
+  suppressErrors: true
+});
+```
+
+### Complete example with HTML
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    
+    mermaid.initialize({ theme: 'default' });
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+      await mermaid.run();
+    });
+  </script>
+</head>
+<body>
+  <div class="mermaid">
+    graph TD
+      A[Start] --> B[Process]
+      B --> C[End]
+  </div>
+  
+  <div class="mermaid">
+    sequenceDiagram
+      Alice->>Bob: Hello
+      Bob->>Alice: Hi!
+  </div>
+</body>
+</html>
+```
+
+## Usage notes
+
+- Can be called multiple times; already-processed diagrams are skipped
+- Use `initialize()` before calling `run()` to configure Mermaid
+- Elements must be in the DOM before calling `run()`
+- The method processes `innerHTML`, so ensure content is properly escaped
+- Diagram text is dedented and trimmed before processing
+
+<Warning>
+  If `suppressErrors` is `false` (default), the first error will stop processing and throw. Use `suppressErrors: true` to render all valid diagrams even if some fail.
+</Warning>
+
+## Related methods
+
+- [initialize()](/api/methods/initialize) - Configure Mermaid before rendering
+- [render()](/api/methods/render) - Render a single diagram programmatically
+- [parse()](/api/methods/parse) - Validate diagram syntax without rendering

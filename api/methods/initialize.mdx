@@ -1,0 +1,125 @@
+---
+title: initialize()
+---
+
+Configures Mermaid with global settings that apply to all diagrams. This method should be called before rendering any diagrams with `run()` or `render()`.
+
+## Signature
+
+```typescript
+function initialize(config: MermaidConfig): void
+```
+
+## Parameters
+
+<ParamField path="config" type="MermaidConfig" required>
+  Configuration object containing settings for Mermaid rendering.
+
+  Common configuration options:
+
+  <Expandable title="properties">
+    <ParamField path="theme" type="string">
+      The theme to use for rendering. Options: `'default'`, `'dark'`, `'forest'`, `'neutral'`, `'base'`.
+    </ParamField>
+
+    <ParamField path="themeVariables" type="object">
+      Override theme variables like colors and fonts.
+    </ParamField>
+
+    <ParamField path="fontFamily" type="string">
+      Font family to use for all diagrams.
+    </ParamField>
+
+    <ParamField path="logLevel" type="string">
+      Logging level. Options: `'debug'`, `'info'`, `'warn'`, `'error'`, `'fatal'`.
+    </ParamField>
+
+    <ParamField path="securityLevel" type="string">
+      Security level for rendering. Options: `'strict'`, `'loose'`, `'sandbox'`.
+    </ParamField>
+
+    <ParamField path="startOnLoad" type="boolean">
+      Whether to automatically render diagrams when the page loads.
+    </ParamField>
+
+    <ParamField path="maxTextSize" type="number">
+      Maximum allowed text size for diagram definitions.
+    </ParamField>
+
+    <ParamField path="deterministicIds" type="boolean">
+      Whether to use deterministic IDs for elements.
+    </ParamField>
+
+    <ParamField path="deterministicIDSeed" type="string">
+      Seed for deterministic ID generation.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return value
+
+`void` - This method does not return a value.
+
+## Examples
+
+### Basic initialization
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({
+  theme: 'dark',
+  logLevel: 'error',
+  securityLevel: 'strict'
+});
+```
+
+### Custom theme configuration
+
+```javascript
+mermaid.initialize({
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#ff6b6b',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#ff6b6b',
+    lineColor: '#f5a442',
+    secondaryColor: '#4ecdc4',
+    tertiaryColor: '#ffe66d'
+  },
+  fontFamily: 'Arial, sans-serif'
+});
+```
+
+### Configuration for automatic rendering
+
+```javascript
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default'
+});
+
+// Diagrams with class="mermaid" will be automatically rendered
+```
+
+### Deterministic IDs for testing
+
+```javascript
+mermaid.initialize({
+  deterministicIds: true,
+  deterministicIDSeed: 'test-seed'
+});
+```
+
+## Usage notes
+
+- Call `initialize()` before using `run()` or `render()`
+- Can be called multiple times to update configuration
+- Configuration merges with existing settings
+- When `theme` is specified, appropriate theme variables are automatically applied
+- The `fontFamily` setting is propagated to `themeVariables.fontFamily` if not already set
+
+## Related methods
+
+- [run()](/api/methods/run) - Render all diagrams on the page
+- [render()](/api/methods/render) - Render a single diagram to SVG

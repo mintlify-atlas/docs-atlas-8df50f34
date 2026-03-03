@@ -1,0 +1,169 @@
+---
+title: Core API overview
+description: Understanding Mermaid's JavaScript API architecture and how to use it programmatically
+---
+
+Mermaid provides a JavaScript API for programmatic diagram rendering and parsing. The API is designed to support both simple use cases and advanced integrations.
+
+## Architecture
+
+Mermaid's API has two main layers:
+
+1. **mermaid** - High-level, user-facing API with automatic queueing and error handling
+2. **mermaidAPI** - Lower-level internal API (deprecated for direct use)
+
+<Note>
+Most users should use the `mermaid` export. The `mermaidAPI` is marked as deprecated for external use and is primarily for internal implementation.
+</Note>
+
+## Main exports
+
+The mermaid package exports the following primary interfaces:
+
+<CardGroup cols={2}>
+  <Card title="mermaid" icon="diagram-project" href="/api/mermaid">
+    High-level API with run, render, parse, and initialization methods
+  </Card>
+  <Card title="mermaidAPI" icon="code" href="/api/mermaid-api">
+    Low-level API (deprecated for external use)
+  </Card>
+</CardGroup>
+
+## Installation
+
+Install mermaid from npm:
+
+```bash
+npm install mermaid
+```
+
+Import in your JavaScript/TypeScript code:
+
+```javascript
+import mermaid from 'mermaid';
+```
+
+## Core concepts
+
+### Initialization vs. runtime
+
+Mermaid separates configuration (initialization) from execution:
+
+- **initialize()** - Set configuration before rendering
+- **run()** - Find and render diagrams in the DOM
+- **render()** - Render a specific diagram programmatically
+
+### Queue-based execution
+
+The `mermaid.render()` and `mermaid.parse()` methods use an internal execution queue to ensure diagrams are processed serially. This prevents race conditions and ensures consistent results.
+
+```javascript
+// Multiple render calls are automatically queued
+const result1 = mermaid.render('id1', 'graph TD; A-->B');
+const result2 = mermaid.render('id2', 'graph LR; C-->D');
+
+// They execute in order, one at a time
+await Promise.all([result1, result2]);
+```
+
+### Error handling
+
+Mermaid provides multiple ways to handle errors:
+
+- **suppressErrors** option in `run()` to log instead of throw
+- **parseError** callback for custom error handling
+- **setParseErrorHandler()** to set error handler globally
+
+## Common workflows
+
+### Workflow 1: Auto-rendering on page load
+
+The simplest approach for static sites:
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: true });
+```
+
+Mermaid will automatically find and render all elements with the `.mermaid` class when the page loads.
+
+### Workflow 2: Manual rendering
+
+For dynamic applications:
+
+```javascript
+import mermaid from 'mermaid';
+
+// Configure once
+mermaid.initialize({ theme: 'dark' });
+
+// Render programmatically
+const element = document.querySelector('#diagram');
+const { svg, bindFunctions } = await mermaid.render(
+  'diagramId',
+  'graph TD; A-->B'
+);
+
+element.innerHTML = svg;
+bindFunctions?.(element);
+```
+
+### Workflow 3: Validation and parsing
+
+For editors and validators:
+
+```javascript
+import mermaid from 'mermaid';
+
+// Validate syntax
+try {
+  const result = await mermaid.parse('graph TD; A-->B');
+  console.log('Valid diagram:', result.diagramType);
+} catch (error) {
+  console.error('Invalid syntax:', error);
+}
+
+// Or suppress errors
+const result = await mermaid.parse('invalid syntax', { suppressErrors: true });
+if (result === false) {
+  console.log('Invalid diagram');
+}
+```
+
+## API comparison
+
+| Feature | mermaid | mermaidAPI |
+|---------|---------|------------|
+| Status | Recommended | Deprecated for external use |
+| Queueing | Automatic | Manual |
+| Error handling | Built-in | Manual |
+| Use case | All applications | Internal implementation |
+
+## TypeScript support
+
+Mermaid includes full TypeScript definitions:
+
+```typescript
+import mermaid, { type MermaidConfig, type RenderResult } from 'mermaid';
+
+const config: MermaidConfig = {
+  theme: 'dark',
+  logLevel: 'error'
+};
+
+mermaid.initialize(config);
+
+const result: RenderResult = await mermaid.render('id', 'graph TD; A-->B');
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="mermaid API" icon="diagram-project" href="/api/mermaid">
+    Learn about the high-level mermaid API
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/config/configuration">
+    Explore configuration options
+  </Card>
+</CardGroup>

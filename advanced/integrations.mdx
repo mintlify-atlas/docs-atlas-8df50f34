@@ -1,0 +1,763 @@
+---
+title: Integration with frameworks and tools
+description: Learn how to integrate Mermaid with React, Vue, Angular, and other frameworks and build tools
+---
+
+## Overview
+
+Mermaid can be integrated into various frameworks and build systems. This guide provides practical integration patterns for popular frameworks, along with examples and best practices from the source code.
+
+## Module formats
+
+Mermaid is available in multiple module formats:
+
+- **ESM** (recommended): `mermaid.esm.min.mjs`
+- **UMD**: `mermaid.min.js`
+- **Tiny version**: Approximately half the size, without Mindmap, Architecture, KaTeX, or lazy loading
+
+### ESM import (recommended)
+
+From `usage.md:66`:
+
+```html
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+</script>
+```
+
+Or with npm:
+
+```javascript
+import mermaid from 'mermaid';
+```
+
+## React integration
+
+### Using hooks
+
+```tsx
+import { useEffect, useRef, useState } from 'react';
+import mermaid from 'mermaid';
+
+// Initialize once
+mermaid.initialize({ 
+  startOnLoad: false,
+  theme: 'default'
+});
+
+interface MermaidProps {
+  chart: string;
+  id?: string;
+}
+
+export const Mermaid: React.FC<MermaidProps> = ({ chart, id = 'mermaid' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    const renderDiagram = async () => {
+      if (!containerRef.current) return;
+      
+      try {
+        // Generate unique ID for each render
+        const uniqueId = `${id}-${Date.now()}`;
+        
+        // Render the diagram
+        const { svg, bindFunctions } = await mermaid.render(uniqueId, chart);
+        setSvg(svg);
+        setError('');
+        
+        // Bind interactive functions after SVG is in DOM
+        if (containerRef.current && bindFunctions) {
+          setTimeout(() => {
+            bindFunctions(containerRef.current!);
+          }, 0);
+        }
+      } catch (err) {
+        console.error('Mermaid rendering error:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    };
+
+    renderDiagram();
+  }, [chart, id]);
+
+  if (error) {
+    return (
+      <div style={{ color: 'red', border: '1px solid red', padding: '10px' }}>
+        <strong>Error rendering diagram:</strong> {error}
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+};
+```
+
+### Usage in React component
+
+```tsx
+import { Mermaid } from './components/Mermaid';
+
+function App() {
+  const diagram = `
+    flowchart TD
+      A[Start] --> B{Decision}
+      B -->|Yes| C[Action 1]
+      B -->|No| D[Action 2]
+  `;
+
+  return (
+    <div>
+      <h1>My Diagram</h1>
+      <Mermaid chart={diagram} />
+    </div>
+  );
+}
+```
+
+### Class component version
+
+```tsx
+import React from 'react';
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: false });
+
+interface Props {
+  chart: string;
+}
+
+interface State {
+  svg: string;
+}
+
+export class MermaidDiagram extends React.Component<Props, State> {
+  private containerRef = React.createRef<HTMLDivElement>();
+  
+  state: State = {
+    svg: ''
+  };
+
+  async componentDidMount() {
+    await this.renderDiagram();
+  }
+
+  async componentDidUpdate(prevProps: Props) {
+    if (prevProps.chart !== this.props.chart) {
+      await this.renderDiagram();
+    }
+  }
+
+  async renderDiagram() {
+    try {
+      const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+      const { svg, bindFunctions } = await mermaid.render(id, this.props.chart);
+      
+      this.setState({ svg }, () => {
+        if (this.containerRef.current && bindFunctions) {
+          bindFunctions(this.containerRef.current);
+        }
+      });
+    } catch (error) {
+      console.error('Error rendering diagram:', error);
+    }
+  }
+
+  render() {
+    return (
+      <div 
+        ref={this.containerRef}
+        dangerouslySetInnerHTML={{ __html: this.state.svg }}
+      />
+    );
+  }
+}
+```
+
+## Vue integration
+
+### Vue 3 composition API
+
+```vue
+<template>
+  <div ref="containerRef" v-html="svg"></div>
+  <div v-if="error" class="error">
+    <strong>Error:</strong> {{ error }}
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, watch, onMounted } from 'vue';
+import mermaid from 'mermaid';
+
+interface Props {
+  chart: string;
+  id?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  id: 'mermaid'
+});
+
+const containerRef = ref<HTMLElement>();
+const svg = ref('');
+const error = ref('');
+
+mermaid.initialize({ startOnLoad: false });
+
+const renderDiagram = async () => {
+  try {
+    const uniqueId = `${props.id}-${Date.now()}`;
+    const result = await mermaid.render(uniqueId, props.chart);
+    
+    svg.value = result.svg;
+    error.value = '';
+    
+    // Bind functions after DOM update
+    await nextTick();
+    if (containerRef.value && result.bindFunctions) {
+      result.bindFunctions(containerRef.value);
+    }
+  } catch (err) {
+    console.error('Mermaid error:', err);
+    error.value = err instanceof Error ? err.message : 'Unknown error';
+  }
+};
+
+watch(() => props.chart, renderDiagram);
+onMounted(renderDiagram);
+</script>
+
+<style scoped>
+.error {
+  color: red;
+  border: 1px solid red;
+  padding: 10px;
+  margin: 10px 0;
+}
+</style>
+```
+
+### Vue 2 options API
+
+```vue
+<template>
+  <div ref="container" v-html="svg"></div>
+</template>
+
+<script>
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: false });
+
+export default {
+  props: {
+    chart: {
+      type: String,
+      required: true
+    }
+  },
+  data() {
+    return {
+      svg: ''
+    };
+  },
+  watch: {
+    chart() {
+      this.renderDiagram();
+    }
+  },
+  mounted() {
+    this.renderDiagram();
+  },
+  methods: {
+    async renderDiagram() {
+      try {
+        const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+        const { svg, bindFunctions } = await mermaid.render(id, this.chart);
+        
+        this.svg = svg;
+        
+        this.$nextTick(() => {
+          if (this.$refs.container && bindFunctions) {
+            bindFunctions(this.$refs.container);
+          }
+        });
+      } catch (error) {
+        console.error('Mermaid render error:', error);
+      }
+    }
+  }
+};
+</script>
+```
+
+## Angular integration
+
+### Mermaid service
+
+```typescript
+// mermaid.service.ts
+import { Injectable } from '@angular/core';
+import mermaid from 'mermaid';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class MermaidService {
+  private initialized = false;
+
+  constructor() {
+    this.initialize();
+  }
+
+  private initialize() {
+    if (!this.initialized) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default'
+      });
+      this.initialized = true;
+    }
+  }
+
+  async render(id: string, definition: string): Promise<{ svg: string; bindFunctions?: (element: Element) => void }> {
+    try {
+      return await mermaid.render(id, definition);
+    } catch (error) {
+      console.error('Mermaid rendering error:', error);
+      throw error;
+    }
+  }
+}
+```
+
+### Mermaid component
+
+```typescript
+// mermaid.component.ts
+import { Component, Input, ElementRef, ViewChild, OnChanges, AfterViewInit } from '@angular/core';
+import { MermaidService } from './mermaid.service';
+
+@Component({
+  selector: 'app-mermaid',
+  template: `
+    <div #container></div>
+    <div *ngIf="error" class="error">
+      <strong>Error:</strong> {{ error }}
+    </div>
+  `,
+  styles: [`
+    .error {
+      color: red;
+      border: 1px solid red;
+      padding: 10px;
+      margin: 10px 0;
+    }
+  `]
+})
+export class MermaidComponent implements OnChanges, AfterViewInit {
+  @Input() chart: string = '';
+  @Input() id: string = 'mermaid';
+  @ViewChild('container', { static: true }) container!: ElementRef;
+  
+  error: string = '';
+  private viewInitialized = false;
+
+  constructor(private mermaidService: MermaidService) {}
+
+  ngAfterViewInit() {
+    this.viewInitialized = true;
+    this.renderDiagram();
+  }
+
+  ngOnChanges() {
+    if (this.viewInitialized) {
+      this.renderDiagram();
+    }
+  }
+
+  private async renderDiagram() {
+    if (!this.chart || !this.container) return;
+
+    try {
+      const uniqueId = `${this.id}-${Date.now()}`;
+      const { svg, bindFunctions } = await this.mermaidService.render(uniqueId, this.chart);
+      
+      this.container.nativeElement.innerHTML = svg;
+      this.error = '';
+      
+      if (bindFunctions) {
+        bindFunctions(this.container.nativeElement);
+      }
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : 'Unknown error';
+    }
+  }
+}
+```
+
+### Usage in Angular template
+
+```typescript
+// app.component.ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  template: `
+    <h1>Mermaid Diagram</h1>
+    <app-mermaid [chart]="diagram"></app-mermaid>
+  `
+})
+export class AppComponent {
+  diagram = `
+    graph TD
+      A[Start] --> B{Decision}
+      B -->|Yes| C[End 1]
+      B -->|No| D[End 2]
+  `;
+}
+```
+
+## Svelte integration
+
+```svelte
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import mermaid from 'mermaid';
+
+  export let chart = '';
+  export let id = 'mermaid';
+
+  let container;
+  let svg = '';
+  let error = '';
+
+  mermaid.initialize({ startOnLoad: false });
+
+  async function renderDiagram() {
+    if (!chart) return;
+
+    try {
+      const uniqueId = `${id}-${Date.now()}`;
+      const result = await mermaid.render(uniqueId, chart);
+      
+      svg = result.svg;
+      error = '';
+      
+      // Bind functions after DOM update
+      setTimeout(() => {
+        if (container && result.bindFunctions) {
+          result.bindFunctions(container);
+        }
+      }, 0);
+    } catch (err) {
+      console.error('Mermaid error:', err);
+      error = err.message || 'Unknown error';
+    }
+  }
+
+  $: if (chart) renderDiagram();
+
+  onMount(renderDiagram);
+</script>
+
+<div bind:this={container} {@html svg}></div>
+
+{#if error}
+  <div class="error">
+    <strong>Error:</strong> {error}
+  </div>
+{/if}
+
+<style>
+  .error {
+    color: red;
+    border: 1px solid red;
+    padding: 10px;
+    margin: 10px 0;
+  }
+</style>
+```
+
+## Webpack integration
+
+From `usage.md:227`, Mermaid fully supports webpack:
+
+```javascript
+// webpack.config.js
+module.exports = {
+  // ... other config
+  module: {
+    rules: [
+      {
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto'
+      }
+    ]
+  }
+};
+```
+
+### In your application
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: true });
+
+// Or use programmatically
+const element = document.querySelector('#diagram');
+const definition = 'graph TD\nA-->B';
+
+mermaid.render('uniqueId', definition).then(({ svg, bindFunctions }) => {
+  element.innerHTML = svg;
+  if (bindFunctions) {
+    bindFunctions(element);
+  }
+});
+```
+
+See the [working demo](https://github.com/mermaidjs/mermaid-webpack-demo).
+
+## Vite integration
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  optimizeDeps: {
+    include: ['mermaid']
+  }
+});
+```
+
+### Usage with Vite
+
+```javascript
+import mermaid from 'mermaid';
+
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default'
+});
+```
+
+## Next.js integration
+
+### Client-side only component
+
+```tsx
+// components/Mermaid.tsx
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
+interface MermaidProps {
+  chart: string;
+}
+
+export default function Mermaid({ chart }: MermaidProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState('');
+
+  useEffect(() => {
+    // Import mermaid dynamically (client-side only)
+    import('mermaid').then((mermaid) => {
+      mermaid.default.initialize({ startOnLoad: false });
+      
+      const uniqueId = `mermaid-${Date.now()}`;
+      mermaid.default.render(uniqueId, chart).then(({ svg, bindFunctions }) => {
+        setSvg(svg);
+        
+        if (containerRef.current && bindFunctions) {
+          bindFunctions(containerRef.current);
+        }
+      });
+    });
+  }, [chart]);
+
+  return <div ref={containerRef} dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+```
+
+### Usage in Next.js page
+
+```tsx
+import dynamic from 'next/dynamic';
+
+const Mermaid = dynamic(() => import('@/components/Mermaid'), {
+  ssr: false
+});
+
+export default function Page() {
+  const diagram = `
+    sequenceDiagram
+      Alice->>Bob: Hello
+      Bob->>Alice: Hi!
+  `;
+
+  return (
+    <div>
+      <h1>My Diagram</h1>
+      <Mermaid chart={diagram} />
+    </div>
+  );
+}
+```
+
+## Markdown renderers
+
+### With marked
+
+From `usage.md:303`:
+
+```javascript
+import { marked } from 'marked';
+
+const renderer = new marked.Renderer();
+renderer.code = function (code, language) {
+  if (code.match(/^sequenceDiagram/) || code.match(/^graph/)) {
+    return '<pre class="mermaid">' + code + '</pre>';
+  } else {
+    return '<pre><code>' + code + '</code></pre>';
+  }
+};
+
+marked.setOptions({ renderer });
+```
+
+### With markdown-it
+
+```javascript
+import MarkdownIt from 'markdown-it';
+
+const md = new MarkdownIt({
+  html: true
+});
+
+md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+  const token = tokens[idx];
+  const code = token.content.trim();
+  const info = token.info ? token.info.trim() : '';
+
+  if (info === 'mermaid') {
+    return `<pre class="mermaid">${code}</pre>`;
+  }
+
+  return self.renderToken(tokens, idx, options);
+};
+```
+
+## CDN usage
+
+From `usage.md:14`:
+
+```html
+<!doctype html>
+<html lang="en">
+  <body>
+    <pre class="mermaid">
+      graph LR
+        A --- B
+        B-->C[fa:fa-ban forbidden]
+        B-->D(fa:fa-spinner);
+    </pre>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    </script>
+  </body>
+</html>
+```
+
+<Warning>
+Mermaid automatically renders diagrams with `class="mermaid"` when `startOnLoad` is true (default). Set `startOnLoad: false` for manual control.
+</Warning>
+
+## Best practices
+
+### Initialize once
+
+```javascript
+// Good - initialize once at app startup
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+// Bad - don't initialize on every render
+function MyComponent() {
+  mermaid.initialize({ startOnLoad: false }); // ❌
+  // ...
+}
+```
+
+### Use unique IDs
+
+From `mermaid.ts:155`:
+
+```javascript
+// Mermaid uses deterministic ID generation
+const idGenerator = new utils.InitIDGenerator(
+  config.deterministicIds,
+  config.deterministicIDSeed
+);
+const id = `mermaid-${idGenerator.next()}`;
+
+// In your code, generate unique IDs
+const uniqueId = `diagram-${Date.now()}-${Math.random()}`;
+await mermaid.render(uniqueId, definition);
+```
+
+### Handle bindFunctions
+
+From `usage.md:279`:
+
+```javascript
+const { svg, bindFunctions } = await mermaid.render('id', definition);
+element.innerHTML = svg;
+
+// IMPORTANT: Call bindFunctions after inserting SVG into DOM
+if (bindFunctions) {
+  bindFunctions(element);
+}
+```
+
+### Prevent re-rendering
+
+From `mermaid.ts:165`, Mermaid marks processed elements:
+
+```javascript
+if (element.getAttribute('data-processed')) {
+  continue; // Skip already rendered diagrams
+}
+element.setAttribute('data-processed', 'true');
+```
+
+In your framework:
+
+```javascript
+// Only re-render when diagram definition changes
+useEffect(() => {
+  renderDiagram();
+}, [diagramDefinition]); // ✓
+
+// Not on every render
+useEffect(() => {
+  renderDiagram();
+}); // ❌
+```
+
+## Related topics
+
+- [Configuration options](/config/configuration)
+- [Advanced rendering options](/advanced/rendering-options)
+- [Error handling](/advanced/error-handling)
+- [Usage guide](/config/usage)

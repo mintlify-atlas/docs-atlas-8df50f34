@@ -1,0 +1,385 @@
+---
+title: Git graphs
+description: Create pictorial representations of Git commits and branching strategies with Git graph diagrams.
+---
+
+Git graphs are visual representations of Git commits and Git actions (commands) on various branches. These diagrams are particularly helpful for developers and DevOps teams to share their Git branching strategies.
+
+## Basic example
+
+```mermaid
+---
+title: Example Git diagram
+---
+gitGraph
+   commit
+   commit
+   branch develop
+   checkout develop
+   commit
+   commit
+   checkout main
+   merge develop
+   commit
+   commit
+```
+
+## Syntax overview
+
+Mermaid supports the basic Git operations:
+
+- **commit** - Representing a new commit on the current branch
+- **branch** - To create and switch to a new branch
+- **checkout** - To check out an existing branch and set it as current
+- **merge** - To merge an existing branch onto the current branch
+
+<Note>
+`checkout` and `switch` can be used interchangeably.
+</Note>
+
+### Basic commits
+
+A simple gitgraph showing three commits on the default (main) branch:
+
+```mermaid
+gitGraph
+   commit
+   commit
+   commit
+```
+
+### Custom commit IDs
+
+You can specify custom IDs for commits:
+
+```mermaid
+gitGraph
+   commit id: "Alpha"
+   commit id: "Beta"
+   commit id: "Gamma"
+```
+
+### Commit types
+
+Commits can be of three types:
+
+- **NORMAL** - Default type, represented by a solid circle
+- **REVERSE** - Emphasized as a reverse commit, shown with a crossed solid circle
+- **HIGHLIGHT** - Highlighted commit, shown as a filled rectangle
+
+```mermaid
+gitGraph
+   commit id: "Normal"
+   commit
+   commit id: "Reverse" type: REVERSE
+   commit
+   commit id: "Highlight" type: HIGHLIGHT
+   commit
+```
+
+### Tags
+
+You can attach tags to commits:
+
+```mermaid
+gitGraph
+   commit
+   commit id: "Normal" tag: "v1.0.0"
+   commit
+   commit id: "Reverse" type: REVERSE tag: "RC_1"
+   commit
+   commit id: "Highlight" type: HIGHLIGHT tag: "8.8.4"
+   commit
+```
+
+## Branches and merging
+
+### Creating branches
+
+Use the `branch` keyword to create a new branch:
+
+```mermaid
+gitGraph
+   commit
+   commit
+   branch develop
+   commit
+   commit
+   commit
+```
+
+### Checking out branches
+
+Switch between branches using `checkout`:
+
+```mermaid
+gitGraph
+   commit
+   commit
+   branch develop
+   commit
+   commit
+   commit
+   checkout main
+   commit
+   commit
+```
+
+### Merging branches
+
+Merge branches using the `merge` keyword:
+
+```mermaid
+gitGraph
+   commit
+   commit
+   branch develop
+   commit
+   commit
+   commit
+   checkout main
+   commit
+   commit
+   merge develop
+   commit
+   commit
+```
+
+You can customize merge commits with attributes:
+
+```mermaid
+gitGraph
+   commit id: "1"
+   commit id: "2"
+   branch nice_feature
+   checkout nice_feature
+   commit id: "3"
+   checkout main
+   commit id: "4"
+   checkout nice_feature
+   commit id: "5"
+   checkout main
+   merge nice_feature id: "customID" tag: "customTag" type: REVERSE
+```
+
+### Cherry picking
+
+Cherry-pick commits from other branches:
+
+```mermaid
+gitGraph
+    commit id: "ZERO"
+    branch develop
+    branch release
+    commit id:"A"
+    checkout main
+    commit id:"ONE"
+    checkout develop
+    commit id:"B"
+    checkout main
+    merge develop id:"MERGE"
+    commit id:"TWO"
+    checkout release
+    cherry-pick id:"MERGE" parent:"B"
+    commit id:"THREE"
+    checkout develop
+    commit id:"C"
+```
+
+<Note>
+When cherry-picking a merge commit, you must specify the parent commit ID using the `parent` attribute.
+</Note>
+
+## Configuration options
+
+<Accordion title="Show/hide branches">
+
+Control branch visibility with `showBranches`:
+
+```mermaid
+---
+config:
+  gitGraph:
+    showBranches: false
+---
+gitGraph
+  commit
+  branch hotfix
+  checkout hotfix
+  commit
+  checkout main
+  merge hotfix
+```
+
+</Accordion>
+
+<Accordion title="Commit label orientation">
+
+Control label rotation with `rotateCommitLabel`:
+
+```mermaid
+---
+config:
+  gitGraph:
+    rotateCommitLabel: false
+---
+gitGraph
+  commit id: "feat(api): ..."
+  commit id: "a"
+  commit id: "b"
+  branch c2
+  commit id: "feat(modules): ..."
+```
+
+</Accordion>
+
+<Accordion title="Hide commit labels">
+
+Hide commit labels with `showCommitLabel`:
+
+```mermaid
+---
+config:
+  gitGraph:
+    showCommitLabel: false
+---
+gitGraph
+  commit
+  branch develop
+  commit
+  checkout main
+  commit
+```
+
+</Accordion>
+
+<Accordion title="Custom main branch name">
+
+Customize the main branch name:
+
+```mermaid
+---
+config:
+  gitGraph:
+    mainBranchName: 'MetroLine1'
+---
+gitGraph
+  commit id:"NewYork"
+  commit id:"Dallas"
+  branch MetroLine2
+  commit id:"LosAngeles"
+  checkout MetroLine1
+  commit id:"Atlanta"
+  merge MetroLine2
+```
+
+</Accordion>
+
+<Accordion title="Branch ordering">
+
+Control branch order with the `order` keyword:
+
+```mermaid
+---
+config:
+  gitGraph:
+    showBranches: true
+---
+gitGraph
+  commit
+  branch test1 order: 3
+  branch test2 order: 2
+  branch test3 order: 1
+```
+
+</Accordion>
+
+## Orientation
+
+Git graphs support three orientations:
+
+### Left to right (default)
+
+```mermaid
+gitGraph LR:
+   commit
+   commit
+   branch develop
+   commit
+   checkout main
+   merge develop
+```
+
+### Top to bottom
+
+```mermaid
+gitGraph TB:
+   commit
+   commit
+   branch develop
+   commit
+   checkout main
+   merge develop
+```
+
+### Bottom to top
+
+```mermaid
+gitGraph BT:
+   commit
+   commit
+   branch develop
+   commit
+   checkout main
+   merge develop
+```
+
+## Theming
+
+<Accordion title="Customizing branch colors">
+
+Use `git0` to `git7` theme variables to customize branch colors:
+
+```mermaid
+---
+config:
+  themeVariables:
+    'git0': '#ff0000'
+    'git1': '#00ff00'
+    'git2': '#0000ff'
+---
+gitGraph
+   commit
+   branch develop
+   commit tag:"v1.0.0"
+   checkout main
+   commit
+   merge develop
+```
+
+</Accordion>
+
+<Accordion title="Customizing commit labels">
+
+Use `commitLabelColor` and `commitLabelBackground` to style commit labels:
+
+```mermaid
+---
+config:
+  themeVariables:
+    commitLabelColor: '#ff0000'
+    commitLabelBackground: '#00ff00'
+---
+gitGraph
+   commit
+   branch develop
+   commit
+   checkout main
+   merge develop
+```
+
+</Accordion>
+
+<Tip>
+Mermaid supports up to 8 branches with custom colors. After this threshold, theme variables are reused cyclically.
+</Tip>

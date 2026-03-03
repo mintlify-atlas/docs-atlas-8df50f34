@@ -1,0 +1,126 @@
+---
+title: Installation
+description: Install Mermaid in your project using npm, yarn, pnpm, or CDN
+---
+
+# Installation
+
+Mermaid can be installed and used in multiple ways depending on your project setup. Choose the method that best fits your needs.
+
+## Package managers
+
+Install Mermaid as a dependency in your project using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install mermaid
+```
+
+```bash yarn
+yarn add mermaid
+```
+
+```bash pnpm
+pnpm add mermaid
+```
+
+</CodeGroup>
+
+<Note>
+The current stable version of Mermaid is **11.12.2**. The package includes TypeScript definitions out of the box.
+</Note>
+
+## CDN
+
+For quick prototyping or simple projects, you can load Mermaid directly from a CDN without any installation:
+
+### jsDelivr (Recommended)
+
+```html
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true });
+</script>
+```
+
+### unpkg
+
+```html
+<script type="module">
+  import mermaid from 'https://unpkg.com/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true });
+</script>
+```
+
+<Tip>
+Using the CDN is perfect for HTML pages, demos, and experimentation. For production applications, we recommend installing via a package manager for better version control and build optimization.
+</Tip>
+
+## Module formats
+
+Mermaid is distributed as an ES module. When you install the package, you get:
+
+- **ES Module**: `mermaid.core.mjs` (main entry point)
+- **TypeScript types**: `mermaid.d.ts`
+
+### Using with ES modules
+
+```javascript
+import mermaid from 'mermaid';
+```
+
+### Package exports
+
+The package provides the following exports:
+
+```json
+{
+  ".": {
+    "types": "./dist/mermaid.d.ts",
+    "import": "./dist/mermaid.core.mjs",
+    "default": "./dist/mermaid.core.mjs"
+  }
+}
+```
+
+## Verify installation
+
+After installation, you can verify that Mermaid is properly installed by importing it in your JavaScript file:
+
+```javascript
+import mermaid from 'mermaid';
+
+console.log(mermaid);
+// Should output the mermaid object with methods like initialize, render, parse, etc.
+```
+
+## Requirements
+
+Mermaid is designed to work in modern JavaScript environments:
+
+- **Browser support**: Modern browsers with ES module support
+- **Node.js**: For server-side rendering or build tools
+- **TypeScript**: Full type definitions included
+
+## Dependencies
+
+Mermaid relies on several powerful libraries:
+
+- **D3.js** - For graphical layout and drawing
+- **dagre-d3-es** - For directed graph layouts
+- **cytoscape** - For advanced graph layouts
+- **DOMPurify** - For sanitizing user input
+- **KaTeX** - For mathematical notation rendering
+
+<Note>
+All dependencies are bundled with Mermaid, so you don't need to install them separately.
+</Note>
+
+## Next steps
+
+Now that you have Mermaid installed, let's create your first diagram:
+
+<Card title="Quickstart" icon="bolt" href="/quickstart">
+  Follow our quickstart guide to render your first diagram in minutes
+</Card>

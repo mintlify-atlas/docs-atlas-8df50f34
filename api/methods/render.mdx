@@ -1,0 +1,182 @@
+---
+title: render()
+---
+
+Renders a single Mermaid diagram definition to SVG. This method provides programmatic control over diagram rendering without requiring elements in the DOM.
+
+## Signature
+
+```typescript
+async function render(
+  id: string,
+  text: string,
+  container?: Element
+): Promise<RenderResult>
+```
+
+## Parameters
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the SVG element. Used as the `id` attribute of the generated SVG.
+</ParamField>
+
+<ParamField path="text" type="string" required>
+  The Mermaid diagram definition to render.
+</ParamField>
+
+<ParamField path="container" type="Element">
+  Optional HTML element where the SVG will be inserted during rendering. If not provided, a temporary element is created in the document body and removed after rendering.
+</ParamField>
+
+## Return value
+
+<ResponseField name="RenderResult" type="object">
+  An object containing the rendered diagram information.
+
+  <Expandable title="properties">
+    <ResponseField name="svg" type="string">
+      The complete SVG markup as a string, ready to be inserted into the DOM.
+    </ResponseField>
+
+    <ResponseField name="diagramType" type="string">
+      The detected diagram type (e.g., `'flowchart'`, `'sequence'`, `'gantt'`).
+    </ResponseField>
+
+    <ResponseField name="bindFunctions" type="(element: Element) => void">
+      Optional function to bind event listeners to interactive elements in the diagram. Must be called after inserting the SVG into the DOM.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic rendering
+
+```javascript
+import mermaid from 'mermaid';
+
+const element = document.querySelector('#graphDiv');
+const graphDefinition = 'graph TB\na-->b';
+
+const { svg, bindFunctions } = await mermaid.render('graphDiv', graphDefinition);
+element.innerHTML = svg;
+bindFunctions?.(element);
+```
+
+### Dynamic diagram generation
+
+```javascript
+const generateDiagram = async (nodes, edges) => {
+  const definition = `
+    graph TD
+    ${nodes.map(n => `${n.id}[${n.label}]`).join('\n')}
+    ${edges.map(e => `${e.from}-->${e.to}`).join('\n')}
+  `;
+  
+  const { svg } = await mermaid.render('dynamic-graph', definition);
+  return svg;
+};
+
+const svg = await generateDiagram(
+  [{ id: 'A', label: 'Start' }, { id: 'B', label: 'End' }],
+  [{ from: 'A', to: 'B' }]
+);
+```
+
+### Handling different diagram types
+
+```javascript
+const renderSequenceDiagram = async () => {
+  const definition = `
+    sequenceDiagram
+      participant A as Alice
+      participant B as Bob
+      A->>B: Hello Bob!
+      B->>A: Hello Alice!
+  `;
+  
+  const { svg, diagramType } = await mermaid.render('seq1', definition);
+  console.log(`Rendered ${diagramType} diagram`);
+  // Output: "Rendered sequence diagram"
+  
+  return svg;
+};
+```
+
+### With container element
+
+```javascript
+const container = document.querySelector('#diagram-container');
+
+const { svg, bindFunctions } = await mermaid.render(
+  'myDiagram',
+  'graph LR\nA-->B',
+  container
+);
+
+// SVG is rendered using container for measurements
+container.innerHTML = svg;
+bindFunctions?.(container);
+```
+
+### Error handling
+
+```javascript
+try {
+  const { svg } = await mermaid.render(
+    'graph1',
+    'invalid diagram syntax'
+  );
+  document.getElementById('output').innerHTML = svg;
+} catch (error) {
+  console.error('Failed to render diagram:', error);
+  // Display error to user
+}
+```
+
+### Multiple renders in sequence
+
+```javascript
+const diagrams = [
+  { id: 'flow1', text: 'graph TD\nA-->B' },
+  { id: 'seq1', text: 'sequenceDiagram\nA->>B: Hi' },
+  { id: 'gantt1', text: 'gantt\ntitle Project\nTask: 2024-01-01, 3d' }
+];
+
+// Renders are automatically queued and executed serially
+for (const diagram of diagrams) {
+  const { svg } = await mermaid.render(diagram.id, diagram.text);
+  document.getElementById(diagram.id).innerHTML = svg;
+}
+```
+
+## Usage notes
+
+- Multiple calls to `render()` are automatically queued and executed serially
+- The `id` must be unique for each diagram
+- Always call `bindFunctions()` after inserting SVG into DOM if returned
+- The `container` parameter is used for temporary rendering and measurements
+- Diagram text is preprocessed to handle directives and configuration
+- The method respects configuration set via `initialize()`
+
+<Warning>
+  Always call `bindFunctions()` after inserting the SVG into the DOM to enable interactive features like click handlers and tooltips.
+</Warning>
+
+## Queue behavior
+
+Render operations are enqueued to prevent race conditions:
+
+```javascript
+// These execute serially, not in parallel
+const promise1 = mermaid.render('id1', 'graph TD\nA-->B');
+const promise2 = mermaid.render('id2', 'graph TD\nC-->D');
+
+await Promise.all([promise1, promise2]); // Both complete successfully
+```
+
+## Related methods
+
+- [run()](/api/methods/run) - Render all diagrams in the document
+- [parse()](/api/methods/parse) - Validate diagram syntax without rendering
+- [initialize()](/api/methods/initialize) - Configure rendering options

@@ -1,0 +1,230 @@
+---
+title: Mindmaps
+description: Create hierarchical mindmaps to organize and visualize information with Mermaid.
+---
+
+A mindmap is a diagram used to visually organize information into a hierarchy, showing relationships among pieces of the whole. Major ideas are connected directly to the central concept, and other ideas branch out from those major ideas.
+
+<Note>
+Mindmaps are experimental. The syntax is stable except for icon integration.
+</Note>
+
+## Basic example
+
+```mermaid
+mindmap
+  root((mindmap))
+    Origins
+      Long history
+      ::icon(fa fa-book)
+      Popularisation
+        British popular psychology author Tony Buzan
+    Research
+      On effectiveness<br/>and features
+      On Automatic creation
+        Uses
+            Creative techniques
+            Strategic planning
+            Argument mapping
+    Tools
+      Pen and paper
+      Mermaid
+```
+
+## Syntax overview
+
+The syntax relies on indentation to set levels in the hierarchy:
+
+```
+mindmap
+    Root
+        A
+            B
+            C
+```
+
+This creates a simple hierarchy:
+- Root node
+  - Child A
+    - Grandchild B
+    - Grandchild C
+
+```mermaid
+mindmap
+Root
+    A
+      B
+      C
+```
+
+## Node shapes
+
+Mindmaps support various node shapes:
+
+### Square
+
+```mermaid
+mindmap
+    id[I am a square]
+```
+
+### Rounded square
+
+```mermaid
+mindmap
+    id(I am a rounded square)
+```
+
+### Circle
+
+```mermaid
+mindmap
+    id((I am a circle))
+```
+
+### Bang
+
+```mermaid
+mindmap
+    id))I am a bang((
+```
+
+### Cloud
+
+```mermaid
+mindmap
+    id)I am a cloud(
+```
+
+### Hexagon
+
+```mermaid
+mindmap
+    id{{I am a hexagon}}
+```
+
+### Default
+
+```mermaid
+mindmap
+    I am the default shape
+```
+
+## Icons and classes
+
+### Icons
+
+Add icons to nodes using the `::icon()` syntax:
+
+```mermaid
+mindmap
+    Root
+        A
+        ::icon(fa fa-book)
+        B(B)
+        ::icon(mdi mdi-skull-outline)
+```
+
+<Note>
+Icon fonts must be configured by the site administrator. This feature is experimental.
+</Note>
+
+### Classes
+
+Add CSS classes using triple colon syntax:
+
+```mermaid
+mindmap
+    Root
+        A[A]
+        :::urgent large
+        B(B)
+        C
+```
+
+<Note>
+Classes must be supplied by the site administrator.
+</Note>
+
+## Markdown strings
+
+Markdown strings support text formatting and automatic wrapping:
+
+```mermaid
+mindmap
+    id1["`**Root** with
+a second line
+Unicode works too: 🤓`"]
+      id2["`The dog in **the** hog... a *very long text* that wraps to a new line`"]
+      id3[Regular labels still works]
+```
+
+**Formatting:**
+- Use `**text**` for bold
+- Use `*text*` for italics
+- Use newlines instead of `<br>` tags for line breaks
+
+## Indentation handling
+
+Mermaid handles unclear indentation by finding the first node with smaller indentation:
+
+```mermaid
+mindmap
+Root
+    A
+        B
+      C
+```
+
+In this example, C becomes a sibling of B (both children of A) because A is the first parent with smaller indentation than C.
+
+## Layouts
+
+Mermaid supports a Tidy Tree layout for mindmaps:
+
+```mermaid
+---
+config:
+  layout: tidy-tree
+---
+mindmap
+root((mindmap is a long thing))
+  A
+  B
+  C
+  D
+```
+
+<Tip>
+See the [Tidy Tree Configuration](/config/tidy-tree) documentation for instructions on registering the tidy-tree layout.
+</Tip>
+
+## Complete example
+
+Here's a comprehensive mindmap showing various features:
+
+```mermaid
+mindmap
+  root((Project Planning))
+    Research
+      Market Analysis
+        Competitors
+        Target Audience
+      Technical Feasibility
+    Design
+      UI/UX
+        Wireframes
+        Mockups
+      Architecture
+        Frontend
+        Backend
+        Database
+    Development
+      Sprint 1
+      Sprint 2
+      Testing
+    Launch
+      Marketing
+      Deployment
+      Monitoring
+```

@@ -1,0 +1,207 @@
+---
+title: parse()
+---
+
+Validates Mermaid diagram syntax without rendering. This method is useful for checking if a diagram definition is valid before attempting to render it.
+
+## Signature
+
+```typescript
+async function parse(
+  text: string,
+  parseOptions?: ParseOptions
+): Promise<ParseResult | false>
+```
+
+## Parameters
+
+<ParamField path="text" type="string" required>
+  The Mermaid diagram definition to validate.
+</ParamField>
+
+<ParamField path="parseOptions" type="ParseOptions">
+  Options for parsing behavior.
+
+  <Expandable title="properties">
+    <ParamField path="suppressErrors" type="boolean" default={false}>
+      If `true`, returns `false` instead of throwing an error when the diagram is invalid. The `parseError` callback will not be called.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return value
+
+<ResponseField name="ParseResult" type="object | false">
+  Returns a `ParseResult` object if the diagram is valid. If `suppressErrors` is `true` and the diagram is invalid, returns `false` instead of throwing.
+
+  <Expandable title="properties">
+    <ResponseField name="diagramType" type="string">
+      The detected diagram type (e.g., `'flowchart-v2'`, `'sequence'`, `'gantt'`).
+    </ResponseField>
+
+    <ResponseField name="config" type="MermaidConfig">
+      Configuration extracted from YAML frontmatter or directives in the diagram.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Throws
+
+- Throws an error if the diagram is invalid and `suppressErrors` is `false` or not set
+- Error includes details about what is invalid in the diagram
+
+## Examples
+
+### Valid diagram
+
+```javascript
+import mermaid from 'mermaid';
+
+const result = await mermaid.parse('flowchart TD\nA-->B');
+console.log(result);
+// Output: { diagramType: 'flowchart-v2', config: {...} }
+```
+
+### Invalid diagram with error suppression
+
+```javascript
+const result = await mermaid.parse('invalid syntax', { suppressErrors: true });
+console.log(result);
+// Output: false
+```
+
+### Invalid diagram without error suppression
+
+```javascript
+try {
+  await mermaid.parse('invalid syntax');
+} catch (error) {
+  console.error('Diagram validation failed:', error);
+  // Error is thrown
+}
+```
+
+### Validating user input
+
+```javascript
+const validateDiagram = async (userInput) => {
+  const result = await mermaid.parse(userInput, { suppressErrors: true });
+  
+  if (result === false) {
+    return {
+      valid: false,
+      message: 'Invalid diagram syntax'
+    };
+  }
+  
+  return {
+    valid: true,
+    type: result.diagramType,
+    message: `Valid ${result.diagramType} diagram`
+  };
+};
+
+const validation = await validateDiagram('graph TD\nA-->B');
+console.log(validation);
+// Output: { valid: true, type: 'flowchart-v2', message: 'Valid flowchart-v2 diagram' }
+```
+
+### Detecting diagram type
+
+```javascript
+const detectType = async (text) => {
+  const result = await mermaid.parse(text, { suppressErrors: true });
+  return result ? result.diagramType : 'unknown';
+};
+
+console.log(await detectType('sequenceDiagram\nA->>B: Hi'));
+// Output: 'sequence'
+
+console.log(await detectType('gantt\ntitle Project'));
+// Output: 'gantt'
+```
+
+### Form validation
+
+```javascript
+const form = document.querySelector('#diagram-form');
+const input = document.querySelector('#diagram-input');
+const feedback = document.querySelector('#feedback');
+
+input.addEventListener('input', async (e) => {
+  const text = e.target.value;
+  
+  if (!text.trim()) {
+    feedback.textContent = '';
+    return;
+  }
+  
+  const result = await mermaid.parse(text, { suppressErrors: true });
+  
+  if (result === false) {
+    feedback.textContent = '❌ Invalid syntax';
+    feedback.className = 'error';
+  } else {
+    feedback.textContent = `✓ Valid ${result.diagramType}`;
+    feedback.className = 'success';
+  }
+});
+```
+
+### Extracting configuration
+
+```javascript
+const diagramText = `
+%%{init: {'theme':'forest', 'themeVariables': {'primaryColor':'#ff0000'}}}%%
+flowchart TD
+  A-->B
+`;
+
+const result = await mermaid.parse(diagramText);
+console.log(result.config);
+// Output: { theme: 'forest', themeVariables: { primaryColor: '#ff0000' } }
+```
+
+### Batch validation
+
+```javascript
+const diagrams = [
+  'graph TD\nA-->B',
+  'invalid',
+  'sequenceDiagram\nA->>B: Hi'
+];
+
+const results = await Promise.all(
+  diagrams.map(text => mermaid.parse(text, { suppressErrors: true }))
+);
+
+const validDiagrams = results.filter(r => r !== false);
+console.log(`${validDiagrams.length} of ${diagrams.length} diagrams are valid`);
+// Output: "2 of 3 diagrams are valid"
+```
+
+## Usage notes
+
+- Parse operations are queued and execute serially, similar to `render()`
+- Does not produce any visual output or modify the DOM
+- Lighter weight than `render()` when you only need validation
+- Respects configuration from `initialize()` for diagram parsing
+- The `parseError` callback (if set) is called when errors occur, unless `suppressErrors` is `true`
+
+## Queue behavior
+
+Like `render()`, parse operations are enqueued:
+
+```javascript
+// These execute serially
+const p1 = mermaid.parse('graph TD\nA-->B');
+const p2 = mermaid.parse('sequenceDiagram\nA->>B: Hi');
+
+await Promise.all([p1, p2]); // Both complete successfully
+```
+
+## Related methods
+
+- [render()](/api/methods/render) - Render a diagram to SVG
+- [run()](/api/methods/run) - Render all diagrams in the document
+- [initialize()](/api/methods/initialize) - Configure Mermaid

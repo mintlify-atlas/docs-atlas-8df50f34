@@ -1,0 +1,225 @@
+---
+title: Packet diagrams
+description: Create visual representations of network packet structures
+---
+
+Packet diagrams are visual representations used to illustrate the structure and contents of network packets. Network packets are the fundamental units of data transferred over a network.
+
+<Note>
+Packet diagrams are available in Mermaid v11.0.0+. Bit count syntax is available in v11.7.0+.
+</Note>
+
+## Who uses packet diagrams?
+
+This diagram type is particularly useful for:
+
+- Network engineers designing or documenting network protocols
+- Developers implementing network communication
+- Educators teaching networking concepts
+- Students learning about network packet structures
+
+## Basic packet diagram
+
+This example shows a UDP packet structure:
+
+```mermaid
+packet
+title UDP Packet
++16: "Source Port"
++16: "Destination Port"
+32-47: "Length"
+48-63: "Checksum"
+64-95: "Data (variable length)"
+```
+
+## Syntax overview
+
+There are two ways to define packet fields:
+
+### Range syntax
+
+Specify exact bit positions using start and end values:
+
+```
+packet
+start-end: "Block name"
+```
+
+**Example:**
+
+```mermaid
+packet
+0-15: "Source Port"
+16-31: "Destination Port"
+```
+
+### Bit count syntax (v11.7.0+)
+
+Use `+<count>` to automatically calculate positions:
+
+```
+packet
++<count>: "Block name"
+```
+
+**Example:**
+
+```mermaid
+packet
++16: "Source Port"
++16: "Destination Port"
++16: "Length"
+```
+
+<Tip>
+Bit count syntax is easier to maintain when modifying packet designs. The positions are calculated automatically based on the previous field.
+</Tip>
+
+## Adding titles
+
+You can add a title to your packet diagram in two ways:
+
+### Using frontmatter
+
+```mermaid
+---
+title: "TCP Packet"
+---
+packet
+0-15: "Source Port"
+16-31: "Destination Port"
+```
+
+### Using inline title
+
+```mermaid
+packet
+title TCP Packet
+0-15: "Source Port"
+16-31: "Destination Port"
+```
+
+## Complete examples
+
+### TCP packet structure
+
+```mermaid
+---
+title: "TCP Packet"
+---
+packet
+0-15: "Source Port"
+16-31: "Destination Port"
+32-63: "Sequence Number"
+64-95: "Acknowledgment Number"
+96-99: "Data Offset"
+100-105: "Reserved"
+106: "URG"
+107: "ACK"
+108: "PSH"
+109: "RST"
+110: "SYN"
+111: "FIN"
+112-127: "Window"
+128-143: "Checksum"
+144-159: "Urgent Pointer"
+160-191: "(Options and Padding)"
+192-255: "Data (variable length)"
+```
+
+### UDP packet with bit count syntax
+
+```mermaid
+packet
+title UDP Packet
++16: "Source Port"
++16: "Destination Port"
+32-47: "Length"
+48-63: "Checksum"
+64-95: "Data (variable length)"
+```
+
+## Mixing syntax styles
+
+You can mix range syntax and bit count syntax in the same diagram:
+
+```mermaid
+packet
++1: "Version (1 bit)"
++8: "Type (8 bits)"
+9-15: "Flags (manually set)"
++16: "Length"
+```
+
+<Note>
+When using bit count syntax, the position starts from the end of the previous field. You can switch between syntax styles as needed.
+</Note>
+
+## Field details
+
+### Single-bit fields
+
+For single-bit flags, use either syntax:
+
+```mermaid
+packet
+106: "URG"
+107: "ACK"
+```
+
+Or:
+
+```mermaid
+packet
++1: "URG"
++1: "ACK"
+```
+
+### Multi-bit fields
+
+For larger fields, specify the full range or bit count:
+
+```mermaid
+packet
+0-15: "16-bit field"
++32: "32-bit field"
+```
+
+## Configuration
+
+For detailed configuration options, see the [packet diagram configuration reference](/config/schema-docs/config-defs-packet-diagram-config).
+
+<Accordion title="Configuration options">
+
+Packet diagrams support various configuration options:
+
+- **showBits**: Toggle bit position display
+- **Styling options**: Customize colors, fonts, and stroke widths
+- **Layout options**: Adjust spacing and alignment
+
+Note: Some theme variables may not be fully functional in the current version due to known issues.
+
+</Accordion>
+
+## Example: IPv4 header
+
+```mermaid
+packet
+title IPv4 Header
++4: "Version"
++4: "IHL"
++8: "Type of Service"
++16: "Total Length"
++16: "Identification"
++3: "Flags"
++13: "Fragment Offset"
++8: "Time to Live"
++8: "Protocol"
++16: "Header Checksum"
++32: "Source IP Address"
++32: "Destination IP Address"
+```
+
+<Tip>
+Use packet diagrams to document custom network protocols or to help visualize standard protocol structures for educational purposes.
+</Tip>

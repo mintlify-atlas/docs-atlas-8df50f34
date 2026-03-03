@@ -1,0 +1,653 @@
+---
+title: Creating custom diagram types
+description: Learn how to create and register custom diagram types using Mermaid's External Diagram API
+---
+
+## Overview
+
+Mermaid provides an External Diagram API that allows you to create and register custom diagram types. This enables you to extend Mermaid with your own diagram syntax and rendering logic without modifying the core library.
+
+## External Diagram API
+
+The External Diagram API is defined in `diagram-api/types.ts:96`:
+
+```typescript
+interface ExternalDiagramDefinition {
+  id: string;                          // Unique identifier for the diagram type
+  detector: DiagramDetector;           // Function to detect this diagram type
+  loader: DiagramLoader;               // Function to lazy-load the diagram implementation
+}
+
+type DiagramDetector = (text: string, config?: MermaidConfig) => boolean;
+type DiagramLoader = () => Promise<{ id: string; diagram: DiagramDefinition }>;
+```
+
+### DiagramDefinition structure
+
+The loaded diagram must conform to the `DiagramDefinition` interface (`diagram-api/types.ts:78`):
+
+```typescript
+interface DiagramDefinition {
+  db: DiagramDB;                       // Database/state management
+  renderer: DiagramRenderer;           // Rendering logic
+  parser: ParserDefinition;            // Parser for diagram syntax
+  styles?: any;                        // Optional styles
+  init?: (config: MermaidConfig) => void;  // Optional initialization
+  injectUtils?: (...utils) => void;    // Optional utility injection
+}
+```
+
+## Registering external diagrams
+
+Use `mermaid.registerExternalDiagrams()` to register custom diagram types (`mermaid.ts:254`):
+
+```javascript
+const registerExternalDiagrams = async (
+  diagrams: ExternalDiagramDefinition[],
+  { lazyLoad = true }: { lazyLoad?: boolean } = {}
+) => {
+  addDiagrams();
+  registerLazyLoadedDiagrams(...diagrams);
+  if (lazyLoad === false) {
+    await loadRegisteredDiagrams();
+  }
+};
+```
+
+### Lazy loading vs. immediate loading
+
+- **Lazy loading** (default): Diagram code is loaded only when detected
+- **Immediate loading**: All diagram code is loaded upfront
+
+```javascript
+// Lazy load (default)
+await mermaid.registerExternalDiagrams([myDiagram]);
+
+// Load immediately
+await mermaid.registerExternalDiagrams([myDiagram], { lazyLoad: false });
+```
+
+<Warning>
+The order of diagram registration is important. The first detector to return `true` will be used, so register more specific detectors first.
+</Warning>
+
+## Creating a custom diagram
+
+### Step 1: Create the detector
+
+The detector identifies your diagram type from the text (`detectType.ts:36`):
+
+```javascript
+const myDiagramDetector = (text) => {
+  // Remove directives and comments
+  const cleanText = text
+    .replace(/%%\{[^}]*\}%%/g, '')
+    .replace(/%%[^\n]*\n/g, '')
+    .trim();
+  
+  // Check if it starts with your diagram keyword
+  return cleanText.startsWith('mydiagram');
+};
+```
+
+### Step 2: Create the parser
+
+Define how your diagram syntax is parsed:
+
+```javascript
+const myDiagramParser = {
+  parse: async (text) => {
+    // Parse the diagram text and populate the db
+    const lines = text.split('\n').slice(1); // Skip first line (diagram type)
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('%%')) continue;
+      
+      // Parse your custom syntax
+      if (trimmed.includes('->')) {
+        const [from, to] = trimmed.split('->').map(s => s.trim());
+        myDiagramDb.addRelation(from, to);
+      }
+    }
+  }
+};
+```
+
+### Step 3: Create the database
+
+The database manages diagram state (`diagram-api/types.ts:27`):
+
+```javascript
+const myDiagramDb = {
+  relations: [],
+  
+  clear() {
+    this.relations = [];
+  },
+  
+  addRelation(from, to) {
+    this.relations.push({ from, to });
+  },
+  
+  getRelations() {
+    return this.relations;
+  },
+  
+  // Required accessibility methods
+  setAccTitle(title) {
+    this.accTitle = title;
+  },
+  
+  getAccTitle() {
+    return this.accTitle || '';
+  },
+  
+  setAccDescription(desc) {
+    this.accDescription = desc;
+  },
+  
+  getAccDescription() {
+    return this.accDescription || '';
+  },
+  
+  setDiagramTitle(title) {
+    this.title = title;
+  },
+  
+  getDiagramTitle() {
+    return this.title || '';
+  },
+  
+  getConfig() {
+    return {};
+  }
+};
+```
+
+### Step 4: Create the renderer
+
+The renderer draws the diagram (`diagram-api/types.ts:70`):
+
+```javascript
+import { select } from 'd3';
+
+const myDiagramRenderer = {
+  draw: async (text, id, version, diagramObject) => {
+    const db = diagramObject.db;
+    const relations = db.getRelations();
+    
+    // Get the SVG element
+    const svg = select(`#${id}`);
+    const group = svg.append('g');
+    
+    // Simple rendering example
+    relations.forEach((rel, i) => {
+      const y = 50 + i * 40;
+      
+      // Draw nodes
+      group.append('rect')
+        .attr('x', 50)
+        .attr('y', y)
+        .attr('width', 100)
+        .attr('height', 30)
+        .attr('fill', '#e0e0e0')
+        .attr('stroke', '#333');
+      
+      group.append('text')
+        .attr('x', 100)
+        .attr('y', y + 20)
+        .attr('text-anchor', 'middle')
+        .text(rel.from);
+      
+      group.append('rect')
+        .attr('x', 250)
+        .attr('y', y)
+        .attr('width', 100)
+        .attr('height', 30)
+        .attr('fill', '#e0e0e0')
+        .attr('stroke', '#333');
+      
+      group.append('text')
+        .attr('x', 300)
+        .attr('y', y + 20)
+        .attr('text-anchor', 'middle')
+        .text(rel.to);
+      
+      // Draw arrow
+      group.append('line')
+        .attr('x1', 150)
+        .attr('y1', y + 15)
+        .attr('x2', 250)
+        .attr('y2', y + 15)
+        .attr('stroke', '#333')
+        .attr('stroke-width', 2)
+        .attr('marker-end', 'url(#arrowhead)');
+    });
+    
+    // Add arrowhead marker
+    svg.append('defs')
+      .append('marker')
+      .attr('id', 'arrowhead')
+      .attr('markerWidth', 10)
+      .attr('markerHeight', 10)
+      .attr('refX', 9)
+      .attr('refY', 3)
+      .attr('orient', 'auto')
+      .append('polygon')
+      .attr('points', '0 0, 10 3, 0 6')
+      .attr('fill', '#333');
+  }
+};
+```
+
+### Step 5: Create the loader
+
+The loader returns the complete diagram definition:
+
+```javascript
+const myDiagramLoader = async () => {
+  return {
+    id: 'mydiagram',
+    diagram: {
+      db: myDiagramDb,
+      renderer: myDiagramRenderer,
+      parser: myDiagramParser,
+      styles: () => `
+        .mydiagram rect {
+          rx: 5;
+          ry: 5;
+        }
+        .mydiagram text {
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+        }
+      `
+    }
+  };
+};
+```
+
+### Step 6: Register the diagram
+
+```javascript
+import mermaid from 'mermaid';
+
+const myDiagram = {
+  id: 'mydiagram',
+  detector: myDiagramDetector,
+  loader: myDiagramLoader
+};
+
+// Register the diagram
+await mermaid.registerExternalDiagrams([myDiagram]);
+
+// Initialize Mermaid
+mermaid.initialize({ startOnLoad: true });
+```
+
+## Complete example: Simple network diagram
+
+<Steps>
+
+<Step title="Create the custom diagram module">
+
+```javascript
+// networkDiagram.js
+import { select } from 'd3';
+
+const db = {
+  nodes: [],
+  edges: [],
+  clear() {
+    this.nodes = [];
+    this.edges = [];
+  },
+  addNode(id, label) {
+    this.nodes.push({ id, label: label || id });
+  },
+  addEdge(from, to) {
+    this.edges.push({ from, to });
+  },
+  getNodes() {
+    return this.nodes;
+  },
+  getEdges() {
+    return this.edges;
+  },
+  // Required methods
+  setAccTitle(title) { this.accTitle = title; },
+  getAccTitle() { return this.accTitle || ''; },
+  setAccDescription(desc) { this.accDescription = desc; },
+  getAccDescription() { return this.accDescription || ''; },
+  setDiagramTitle(title) { this.title = title; },
+  getDiagramTitle() { return this.title || ''; },
+  getConfig() { return {}; }
+};
+
+const parser = {
+  parse: async (text) => {
+    db.clear();
+    const lines = text.split('\n').slice(1);
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('%%')) continue;
+      
+      if (trimmed.includes('-->')) {
+        const [from, to] = trimmed.split('-->').map(s => s.trim());
+        if (!db.getNodes().find(n => n.id === from)) {
+          db.addNode(from);
+        }
+        if (!db.getNodes().find(n => n.id === to)) {
+          db.addNode(to);
+        }
+        db.addEdge(from, to);
+      }
+    }
+  }
+};
+
+const renderer = {
+  draw: async (text, id, version, diagramObject) => {
+    const svg = select(`#${id}`);
+    const nodes = db.getNodes();
+    const edges = db.getEdges();
+    
+    // Simple circular layout
+    const centerX = 200;
+    const centerY = 200;
+    const radius = 150;
+    const angleStep = (2 * Math.PI) / nodes.length;
+    
+    const nodePositions = {};
+    nodes.forEach((node, i) => {
+      const angle = i * angleStep;
+      nodePositions[node.id] = {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle)
+      };
+    });
+    
+    const g = svg.append('g');
+    
+    // Draw edges
+    edges.forEach(edge => {
+      const from = nodePositions[edge.from];
+      const to = nodePositions[edge.to];
+      
+      g.append('line')
+        .attr('x1', from.x)
+        .attr('y1', from.y)
+        .attr('x2', to.x)
+        .attr('y2', to.y)
+        .attr('stroke', '#999')
+        .attr('stroke-width', 2);
+    });
+    
+    // Draw nodes
+    nodes.forEach(node => {
+      const pos = nodePositions[node.id];
+      
+      g.append('circle')
+        .attr('cx', pos.x)
+        .attr('cy', pos.y)
+        .attr('r', 30)
+        .attr('fill', '#4a90e2')
+        .attr('stroke', '#333')
+        .attr('stroke-width', 2);
+      
+      g.append('text')
+        .attr('x', pos.x)
+        .attr('y', pos.y)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('fill', 'white')
+        .attr('font-weight', 'bold')
+        .text(node.label);
+    });
+  }
+};
+
+export const networkDiagram = {
+  id: 'network',
+  detector: (text) => text.trim().startsWith('network'),
+  loader: async () => ({
+    id: 'network',
+    diagram: {
+      db,
+      parser,
+      renderer,
+      styles: () => `
+        .network circle {
+          cursor: pointer;
+        }
+        .network circle:hover {
+          fill: #357abd;
+        }
+      `
+    }
+  })
+};
+```
+
+</Step>
+
+<Step title="Register and use the diagram">
+
+```javascript
+import mermaid from 'mermaid';
+import { networkDiagram } from './networkDiagram.js';
+
+// Register custom diagram
+await mermaid.registerExternalDiagrams([networkDiagram]);
+
+// Initialize
+mermaid.initialize({ startOnLoad: true });
+```
+
+</Step>
+
+<Step title="Use in HTML">
+
+```html
+<pre class="mermaid">
+network
+A --> B
+B --> C
+C --> A
+A --> D
+</pre>
+```
+
+</Step>
+
+</Steps>
+
+## Advanced features
+
+### Theming support
+
+Provide theme-aware styles:
+
+```javascript
+const myDiagram = {
+  // ...
+  diagram: {
+    // ...
+    styles: (options) => `
+      .mydiagram rect {
+        fill: ${options.primaryColor || '#e0e0e0'};
+        stroke: ${options.primaryBorderColor || '#333'};
+      }
+      .mydiagram text {
+        fill: ${options.primaryTextColor || '#000'};
+        font-family: ${options.fontFamily || 'Arial, sans-serif'};
+      }
+    `
+  }
+};
+```
+
+### Configuration support
+
+```javascript
+const db = {
+  // ...
+  getConfig() {
+    return {
+      nodeSpacing: 50,
+      edgeColor: '#999',
+      // Custom config options
+    };
+  }
+};
+
+const renderer = {
+  draw: async (text, id, version, diagramObject) => {
+    const config = diagramObject.db.getConfig();
+    const nodeSpacing = config.nodeSpacing || 50;
+    // Use config in rendering
+  }
+};
+```
+
+### Interactive features
+
+Add click handlers and tooltips:
+
+```javascript
+const db = {
+  // ...
+  bindFunctions(element) {
+    element.querySelectorAll('.node').forEach(node => {
+      node.addEventListener('click', () => {
+        alert(`Clicked: ${node.dataset.id}`);
+      });
+    });
+  }
+};
+
+const renderer = {
+  draw: async (text, id, version, diagramObject) => {
+    // ...
+    nodes.forEach(node => {
+      const circle = g.append('circle')
+        .attr('class', 'node')
+        .attr('data-id', node.id)
+        .attr('cx', pos.x)
+        .attr('cy', pos.y)
+        .attr('r', 30);
+      
+      // Add tooltip
+      circle.append('title').text(node.label);
+    });
+  }
+};
+```
+
+## Detector best practices
+
+From `detectType.ts:36`, detectors should:
+
+1. **Remove frontmatter and directives** before checking:
+
+```javascript
+const detector = (text) => {
+  const cleanText = text
+    .replace(/^---[\s\S]*?---/, '')  // Remove frontmatter
+    .replace(/%%\{[^}]*\}%%/g, '')   // Remove directives
+    .replace(/%%[^\n]*\n/g, '')      // Remove comments
+    .trim();
+  
+  return cleanText.startsWith('mydiagram');
+};
+```
+
+2. **Be specific** to avoid false positives:
+
+```javascript
+// Too generic - might match other diagrams
+const badDetector = (text) => text.includes('-->');
+
+// Better - checks for specific keyword
+const goodDetector = (text) => {
+  const firstLine = text.trim().split('\n')[0];
+  return firstLine === 'mydiagram' || firstLine.startsWith('mydiagram ');
+};
+```
+
+3. **Consider configuration** if needed:
+
+```javascript
+const detector = (text, config) => {
+  if (config?.mydiagram?.enabled === false) {
+    return false;
+  }
+  return text.trim().startsWith('mydiagram');
+};
+```
+
+## Accessibility requirements
+
+All custom diagrams must implement accessibility methods:
+
+```javascript
+const db = {
+  // Required for accessibility
+  setAccTitle(title) {
+    this.accTitle = title;
+  },
+  getAccTitle() {
+    return this.accTitle || '';
+  },
+  setAccDescription(desc) {
+    this.accDescription = desc;
+  },
+  getAccDescription() {
+    return this.accDescription || '';
+  },
+  setDiagramTitle(title) {
+    this.title = title;
+  },
+  getDiagramTitle() {
+    return this.title || '';
+  }
+};
+```
+
+These are used by Mermaid to add ARIA attributes to the SVG.
+
+## Testing custom diagrams
+
+```javascript
+import mermaid from 'mermaid';
+import { myDiagram } from './myDiagram.js';
+
+// Register diagram
+await mermaid.registerExternalDiagrams([myDiagram]);
+
+// Test detection
+const text = 'mydiagram\nA-->B';
+const type = mermaid.detectType(text);
+console.assert(type === 'mydiagram', 'Detection failed');
+
+// Test parsing
+const parseResult = await mermaid.parse(text);
+console.assert(parseResult.diagramType === 'mydiagram', 'Parse failed');
+
+// Test rendering
+try {
+  const { svg } = await mermaid.render('test', text);
+  console.log('Render successful');
+  console.log('SVG length:', svg.length);
+} catch (error) {
+  console.error('Render failed:', error);
+}
+```
+
+## Related topics
+
+- [Advanced rendering options](/advanced/rendering-options)
+- [Error handling and debugging](/advanced/error-handling)
+- [Community guide: Adding a new diagram](https://github.com/mermaid-js/mermaid/blob/develop/docs/community/new-diagram.md)

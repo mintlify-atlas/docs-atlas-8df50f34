@@ -1,0 +1,379 @@
+---
+title: Advanced rendering options
+description: Learn about advanced rendering options, SVG manipulation, and output customization in Mermaid
+---
+
+## Overview
+
+Mermaid provides advanced rendering capabilities that allow you to customize SVG output, manipulate rendering behavior, and optimize diagram generation. This guide covers the internal rendering API and advanced techniques for working with Mermaid's output.
+
+## The render function
+
+The `mermaid.render()` function is the core API for programmatic diagram rendering. It returns both the SVG code and optional binding functions for interactivity.
+
+### Basic usage
+
+```javascript
+const element = document.querySelector('#graphDiv');
+const graphDefinition = 'graph TB\na-->b';
+const { svg, bindFunctions } = await mermaid.render('graphDiv', graphDefinition);
+element.innerHTML = svg;
+bindFunctions?.(element);
+```
+
+### Return value
+
+The render function returns a `RenderResult` object:
+
+```typescript
+interface RenderResult {
+  svg: string;              // The generated SVG code
+  bindFunctions?: (element: Element) => void;  // Optional function to bind interactivity
+  diagramType: string;      // The detected diagram type
+}
+```
+
+## SVG manipulation
+
+### Cleaning up SVG code
+
+Mermaid automatically cleans up the generated SVG using the `cleanUpSvgCode()` function from `mermaidAPI.ts:182`:
+
+```javascript
+const cleanUpSvgCode = (
+  svgCode = '',
+  inSandboxMode: boolean,
+  useArrowMarkerUrls: boolean
+): string => {
+  let cleanedUpSvg = svgCode;
+
+  // Replace marker-end urls with just the # anchor
+  if (!useArrowMarkerUrls && !inSandboxMode) {
+    cleanedUpSvg = cleanedUpSvg.replace(
+      /marker-end="url\([\d+./:=?A-Za-z-]*?#/g,
+      'marker-end="url(#'
+    );
+  }
+
+  cleanedUpSvg = decodeEntities(cleanedUpSvg);
+  cleanedUpSvg = cleanedUpSvg.replace(/<br>/g, '<br/>');
+
+  return cleanedUpSvg;
+};
+```
+
+### Customizing SVG attributes
+
+Mermaid automatically sets standard SVG attributes. The SVG structure created in `mermaidAPI.ts:235`:
+
+```javascript
+const svgNode = enclosingDiv
+  .append('svg')
+  .attr('id', id)
+  .attr('width', '100%')
+  .attr('xmlns', 'http://www.w3.org/2000/svg');
+```
+
+You can modify these attributes after rendering:
+
+```javascript
+const { svg } = await mermaid.render('diagram', definition);
+const parser = new DOMParser();
+const doc = parser.parseFromString(svg, 'image/svg+xml');
+const svgElement = doc.querySelector('svg');
+
+// Customize attributes
+svgElement.setAttribute('viewBox', '0 0 800 600');
+svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+const modifiedSvg = new XMLSerializer().serializeToString(doc);
+```
+
+## Security levels and sandbox mode
+
+Mermaid provides different security levels that affect rendering behavior:
+
+### Security level options
+
+- **strict** (default): HTML tags are encoded, click functionality disabled
+- **antiscript**: HTML tags allowed (script elements removed), clicks enabled
+- **loose**: HTML tags and clicks enabled
+- **sandbox**: Rendering in sandboxed iframe, JavaScript disabled
+
+### Configuring security level
+
+```javascript
+mermaid.initialize({
+  securityLevel: 'loose'
+});
+```
+
+### Sandbox mode rendering
+
+When `securityLevel` is set to `'sandbox'`, Mermaid wraps the SVG in an iframe (`mermaidAPI.ts:212`):
+
+```javascript
+const putIntoIFrame = (svgCode = '', svgElement?: D3Element): string => {
+  const height = svgElement?.viewBox?.baseVal?.height
+    ? svgElement.viewBox.baseVal.height + 'px'
+    : '100%';
+  const base64encodedSrc = toBase64(`<body style="margin:0">${svgCode}</body>`);
+  return `<iframe style="width:100%;height:${height};border:0;margin:0;" 
+    src="data:text/html;charset=UTF-8;base64,${base64encodedSrc}" 
+    sandbox="allow-top-navigation-by-user-activation allow-popups">
+    The "iframe" tag is not supported by your browser.
+  </iframe>`;
+};
+```
+
+<Warning>
+Sandbox mode prevents JavaScript execution, which may disable interactive features like tooltips, clicks, and links in diagrams.
+</Warning>
+
+## Style customization
+
+### Creating custom CSS styles
+
+Mermaid provides the `createCssStyles()` function for generating custom styles (`mermaidAPI.ts:109`):
+
+```javascript
+const createCssStyles = (
+  config: MermaidConfig,
+  classDefs: Map<string, DiagramStyleClassDef> | null = new Map()
+): string => {
+  let cssStyles = '';
+
+  // User-provided theme CSS
+  if (config.themeCSS !== undefined) {
+    cssStyles += `\n${config.themeCSS}`;
+  }
+
+  // Font family configuration
+  if (config.fontFamily !== undefined) {
+    cssStyles += `\n:root { --mermaid-font-family: ${config.fontFamily}}`;
+  }
+  if (config.altFontFamily !== undefined) {
+    cssStyles += `\n:root { --mermaid-alt-font-family: ${config.altFontFamily}}`;
+  }
+
+  // Apply classDefs
+  if (classDefs instanceof Map) {
+    classDefs.forEach((styleClassDef) => {
+      if (!isEmpty(styleClassDef.styles)) {
+        cssElements.forEach((cssElement) => {
+          cssStyles += cssImportantStyles(styleClassDef.id, cssElement, styleClassDef.styles);
+        });
+      }
+    });
+  }
+  return cssStyles;
+};
+```
+
+### Using themeCSS
+
+```javascript
+mermaid.initialize({
+  themeCSS: `
+    .node rect {
+      fill: #f9f9f9;
+      stroke: #333;
+      stroke-width: 2px;
+    }
+    .edgeLabel {
+      background-color: white;
+      padding: 4px;
+    }
+  `
+});
+```
+
+## Rendering queue and concurrency
+
+Mermaid uses an execution queue to handle multiple render calls serially (`mermaid.ts:308`):
+
+```javascript
+const executionQueue: (() => Promise<unknown>)[] = [];
+let executionQueueRunning = false;
+
+const executeQueue = async () => {
+  if (executionQueueRunning) {
+    return;
+  }
+  executionQueueRunning = true;
+  while (executionQueue.length > 0) {
+    const f = executionQueue.shift();
+    if (f) {
+      try {
+        await f();
+      } catch (e) {
+        log.error('Error executing queue', e);
+      }
+    }
+  }
+  executionQueueRunning = false;
+};
+```
+
+This ensures diagrams are rendered sequentially, preventing race conditions:
+
+```javascript
+const render = (id, text, container) => {
+  return new Promise((resolve, reject) => {
+    const performCall = () =>
+      new Promise((res, rej) => {
+        mermaidAPI.render(id, text, container).then(
+          (r) => {
+            res(r);
+            resolve(r);
+          },
+          (e) => {
+            log.error('Error parsing', e);
+            rej(e);
+            reject(e);
+          }
+        );
+      });
+    executionQueue.push(performCall);
+    executeQueue().catch(reject);
+  });
+};
+```
+
+## DOMPurify sanitization
+
+When not in sandbox or loose mode, Mermaid sanitizes SVG output using DOMPurify (`mermaidAPI.ts:454`):
+
+```javascript
+if (isSandboxed) {
+  const svgEl = root.select(enclosingDivID_selector + ' svg').node();
+  svgCode = putIntoIFrame(svgCode, svgEl);
+} else if (!isLooseSecurityLevel) {
+  svgCode = DOMPurify.sanitize(svgCode, {
+    ADD_TAGS: ['foreignobject'],
+    ADD_ATTR: ['dominant-baseline'],
+    HTML_INTEGRATION_POINTS: { foreignobject: true },
+  });
+}
+```
+
+## Text size limits
+
+Mermaid enforces a maximum text size to prevent performance issues (`mermaidAPI.ts:29`):
+
+```javascript
+const MAX_TEXTLENGTH = 50_000;
+const MAX_TEXTLENGTH_EXCEEDED_MSG =
+  'graph TB;a[Maximum text size in diagram exceeded];style a fill:#faa';
+
+// In render function:
+if (text.length > (config?.maxTextSize ?? MAX_TEXTLENGTH)) {
+  text = MAX_TEXTLENGTH_EXCEEDED_MSG;
+}
+```
+
+You can override this limit in configuration:
+
+```javascript
+mermaid.initialize({
+  maxTextSize: 100000
+});
+```
+
+<Warning>
+Increasing `maxTextSize` significantly may cause browser performance issues with large diagrams.
+</Warning>
+
+## Arrow marker URLs
+
+Control whether arrow markers use full URLs or anchors with the `arrowMarkerAbsolute` configuration:
+
+```javascript
+mermaid.initialize({
+  arrowMarkerAbsolute: false  // Use relative anchors (default)
+});
+```
+
+When `false`, Mermaid converts full URLs to anchors:
+```
+marker-end="url(https://example.com/diagram#marker)" 
+// becomes
+marker-end="url(#marker)"
+```
+
+## Advanced example: Custom rendering pipeline
+
+```javascript
+import mermaid from 'mermaid';
+import DOMPurify from 'dompurify';
+
+// Configure Mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  securityLevel: 'loose',
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#007bff',
+    primaryTextColor: '#fff'
+  },
+  themeCSS: `
+    .node rect { rx: 5; ry: 5; }
+    .edgeLabel { font-weight: bold; }
+  `
+});
+
+const customRender = async (definition, containerId) => {
+  try {
+    // Render the diagram
+    const { svg, bindFunctions, diagramType } = await mermaid.render(
+      containerId,
+      definition
+    );
+
+    // Parse SVG for manipulation
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svg, 'image/svg+xml');
+    const svgElement = doc.querySelector('svg');
+
+    // Add custom attributes
+    svgElement.setAttribute('data-diagram-type', diagramType);
+    svgElement.setAttribute('role', 'img');
+    svgElement.setAttribute('aria-label', `${diagramType} diagram`);
+
+    // Add custom watermark
+    const watermark = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+    watermark.setAttribute('x', '10');
+    watermark.setAttribute('y', '20');
+    watermark.setAttribute('font-size', '12');
+    watermark.setAttribute('fill', '#999');
+    watermark.textContent = 'Generated by Mermaid';
+    svgElement.appendChild(watermark);
+
+    // Serialize back to string
+    const modifiedSvg = new XMLSerializer().serializeToString(doc);
+
+    // Insert into DOM
+    const container = document.getElementById(containerId);
+    container.innerHTML = modifiedSvg;
+
+    // Bind interactive functions
+    if (bindFunctions) {
+      bindFunctions(container);
+    }
+
+    return { success: true, diagramType };
+  } catch (error) {
+    console.error('Rendering failed:', error);
+    return { success: false, error };
+  }
+};
+
+// Usage
+await customRender('graph TD\nA-->B', 'myDiagram');
+```
+
+## Related topics
+
+- [Error handling and debugging](/advanced/error-handling)
+- [Configuration options](/config/configuration)
+- [Theming](/config/theming)

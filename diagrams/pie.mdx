@@ -1,0 +1,108 @@
+---
+title: Pie charts
+description: Create circular statistical graphics divided into slices to illustrate numerical proportion
+---
+
+A pie chart is a circular statistical graphic divided into slices to illustrate numerical proportion. The arc length of each slice is proportional to the quantity it represents.
+
+## Basic example
+
+```mermaid
+pie title Pets adopted by volunteers
+    "Dogs" : 386
+    "Cats" : 85
+    "Rats" : 15
+```
+
+## Syntax
+
+Drawing a pie chart is simple:
+
+1. Start with `pie` keyword
+2. Optionally add `showData` to display values
+3. Optionally add `title` with a string
+4. Add data pairs: `"label" : value`
+
+```
+pie [showData] [title <titleText>]
+    "<label1>" : <value1>
+    "<label2>" : <value2>
+    "<label3>" : <value3>
+```
+
+<Note>
+Pie chart values must be positive numbers greater than zero. Negative values are not allowed and will result in an error.
+</Note>
+
+## With data values
+
+Show actual data values after legend text:
+
+```mermaid
+pie showData
+    title Key elements in Product X
+    "Calcium" : 42.96
+    "Potassium" : 50.05
+    "Magnesium" : 10.01
+    "Iron" :  5
+```
+
+## Advanced configuration
+
+Customize appearance with configuration:
+
+```mermaid
+---
+config:
+  pie:
+    textPosition: 0.5
+  themeVariables:
+    pieOuterStrokeWidth: "5px"
+---
+pie showData
+    title Key elements in Product X
+    "Calcium" : 42.96
+    "Potassium" : 50.05
+    "Magnesium" : 10.01
+    "Iron" :  5
+```
+
+<Accordion title="Configuration parameters">
+| Parameter | Description | Default |
+| --------- | ----------- | ------- |
+| `textPosition` | Axial position of labels (0.0 at center to 1.0 at edge) | `0.75` |
+</Accordion>
+
+## Examples
+
+### Simple proportions
+
+```mermaid
+pie title Distribution of resources
+    "Engineering" : 40
+    "Marketing" : 25
+    "Sales" : 20
+    "Support" : 15
+```
+
+### Decimal values
+
+```mermaid
+pie title Market share percentages
+    "Company A" : 33.33
+    "Company B" : 28.57
+    "Company C" : 21.43
+    "Others" : 16.67
+```
+
+### With data displayed
+
+```mermaid
+pie showData
+    title Browser usage statistics
+    "Chrome" : 65.2
+    "Safari" : 18.7
+    "Firefox" : 9.3
+    "Edge" : 4.8
+    "Others" : 2.0
+```

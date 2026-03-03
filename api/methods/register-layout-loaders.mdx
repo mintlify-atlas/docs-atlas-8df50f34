@@ -1,0 +1,305 @@
+---
+title: registerLayoutLoaders()
+---
+
+Registers custom layout algorithms for positioning nodes and edges in diagrams. This allows you to extend Mermaid with additional graph layout engines beyond the built-in options.
+
+## Signature
+
+```typescript
+function registerLayoutLoaders(
+  loaders: LayoutLoaderDefinition[]
+): void
+```
+
+## Parameters
+
+<ParamField path="loaders" type="LayoutLoaderDefinition[]" required>
+  Array of layout loader definitions.
+
+  <Expandable title="LayoutLoaderDefinition structure">
+    <ParamField path="name" type="string" required>
+      Unique identifier for the layout algorithm.
+    </ParamField>
+
+    <ParamField path="loader" type="() => Promise<LayoutAlgorithm>" required>
+      Async function that returns a layout algorithm implementation.
+    </ParamField>
+
+    <ParamField path="algorithm" type="string">
+      Optional algorithm name or variant identifier passed to the layout renderer.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return value
+
+`void` - This method does not return a value.
+
+## Layout algorithm interface
+
+The loader must return an object implementing the `LayoutAlgorithm` interface:
+
+```typescript
+interface LayoutAlgorithm {
+  render(
+    layoutData: LayoutData,
+    svg: SVG,
+    helpers: InternalHelpers,
+    options?: RenderOptions
+  ): Promise<void>;
+}
+```
+
+## Examples
+
+### Basic layout registration
+
+```javascript
+import mermaid from 'mermaid';
+
+const customLayout = {
+  name: 'hierarchical',
+  loader: async () => {
+    // Import your layout implementation
+    const { HierarchicalLayout } = await import('./layouts/hierarchical.js');
+    return new HierarchicalLayout();
+  }
+};
+
+mermaid.registerLayoutLoaders([customLayout]);
+```
+
+### Registering multiple layouts
+
+```javascript
+const layouts = [
+  {
+    name: 'circular',
+    loader: async () => {
+      const { CircularLayout } = await import('./layouts/circular.js');
+      return new CircularLayout();
+    }
+  },
+  {
+    name: 'force-directed',
+    loader: async () => {
+      const { ForceLayout } = await import('./layouts/force.js');
+      return new ForceLayout();
+    }
+  },
+  {
+    name: 'tree',
+    loader: async () => {
+      const { TreeLayout } = await import('./layouts/tree.js');
+      return new TreeLayout();
+    },
+    algorithm: 'radial' // Optional algorithm variant
+  }
+];
+
+mermaid.registerLayoutLoaders(layouts);
+```
+
+### Using external layout library
+
+```javascript
+// Register ELK (Eclipse Layout Kernel)
+const elkLayout = {
+  name: 'elk',
+  loader: async () => {
+    const ELK = await import('elkjs');
+    
+    return {
+      render: async (layoutData, svg, helpers, options) => {
+        const elk = new ELK();
+        const graph = {
+          id: 'root',
+          layoutOptions: { 
+            'elk.algorithm': 'layered',
+            'elk.direction': 'DOWN'
+          },
+          children: layoutData.nodes.map(node => ({
+            id: node.id,
+            width: node.width,
+            height: node.height
+          })),
+          edges: layoutData.edges.map(edge => ({
+            id: edge.id,
+            sources: [edge.source],
+            targets: [edge.target]
+          }))
+        };
+        
+        const layout = await elk.layout(graph);
+        // Apply layout positions to SVG
+        // ... implementation details
+      }
+    };
+  }
+};
+
+mermaid.registerLayoutLoaders([elkLayout]);
+```
+
+### Complete layout implementation example
+
+```javascript
+// layouts/grid.js
+export class GridLayout {
+  async render(layoutData, svg, helpers, options) {
+    const { nodes, edges } = layoutData;
+    const gridSize = 100;
+    const cols = Math.ceil(Math.sqrt(nodes.length));
+    
+    // Position nodes in a grid
+    nodes.forEach((node, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      
+      node.x = col * gridSize;
+      node.y = row * gridSize;
+      
+      // Update node position in SVG
+      const nodeElement = svg.select(`#${node.id}`);
+      nodeElement.attr('transform', `translate(${node.x}, ${node.y})`);
+    });
+    
+    // Route edges
+    edges.forEach(edge => {
+      const source = nodes.find(n => n.id === edge.source);
+      const target = nodes.find(n => n.id === edge.target);
+      
+      // Draw edge path
+      const path = svg.select(`#${edge.id}`);
+      path.attr('d', `M${source.x},${source.y} L${target.x},${target.y}`);
+    });
+  }
+}
+
+// main.js
+import mermaid from 'mermaid';
+import { GridLayout } from './layouts/grid.js';
+
+mermaid.registerLayoutLoaders([{
+  name: 'grid',
+  loader: async () => new GridLayout()
+}]);
+```
+
+### Using layout in diagram configuration
+
+```javascript
+mermaid.initialize({
+  flowchart: {
+    layoutAlgorithm: 'elk' // Use registered layout
+  }
+});
+
+const diagram = `
+flowchart TD
+  A --> B
+  B --> C
+  C --> D
+`;
+
+await mermaid.render('diagram1', diagram);
+```
+
+### Fallback layout configuration
+
+```javascript
+// Register layout with fallback
+const experimentalLayout = {
+  name: 'experimental',
+  loader: async () => {
+    try {
+      const { ExperimentalLayout } = await import('./layouts/experimental.js');
+      return new ExperimentalLayout();
+    } catch (error) {
+      console.warn('Experimental layout failed, using dagre');
+      // Fallback is handled automatically by Mermaid
+      throw error;
+    }
+  }
+};
+
+mermaid.registerLayoutLoaders([experimentalLayout]);
+```
+
+### D3-based layout
+
+```javascript
+const d3ForceLayout = {
+  name: 'd3-force',
+  loader: async () => {
+    const d3 = await import('d3');
+    
+    return {
+      render: async (layoutData, svg, helpers) => {
+        const simulation = d3.forceSimulation(layoutData.nodes)
+          .force('link', d3.forceLink(layoutData.edges))
+          .force('charge', d3.forceManyBody())
+          .force('center', d3.forceCenter());
+        
+        // Run simulation
+        for (let i = 0; i < 300; i++) {
+          simulation.tick();
+        }
+        
+        // Apply positions to SVG
+        layoutData.nodes.forEach(node => {
+          const element = svg.select(`#${node.id}`);
+          element.attr('transform', `translate(${node.x}, ${node.y})`);
+        });
+      }
+    };
+  }
+};
+
+mermaid.registerLayoutLoaders([d3ForceLayout]);
+```
+
+## Built-in layouts
+
+Mermaid includes these layouts by default:
+
+- **dagre**: Hierarchical layout using the Dagre library (default)
+- **cose-bilkent**: Force-directed layout using COSE (Compound Spring Embedder)
+
+## Usage notes
+
+- Layouts are loaded lazily when first used
+- Custom layouts must implement the `LayoutAlgorithm` interface
+- The `layoutData` parameter contains nodes and edges with their properties
+- The `svg` parameter is a D3 selection of the SVG element
+- The `helpers` parameter provides access to internal Mermaid utilities
+- Layout algorithm names are case-sensitive
+- If a requested layout is not found, Mermaid falls back to `dagre`
+
+## Layout data structure
+
+```typescript
+interface LayoutData {
+  layoutAlgorithm: string;
+  nodes: Array<{
+    id: string;
+    width: number;
+    height: number;
+    // ... other node properties
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    // ... other edge properties
+  }>;
+  // ... other layout properties
+}
+```
+
+## Related methods
+
+- [registerExternalDiagrams()](/api/methods/register-external-diagrams) - Register custom diagram types
+- [registerIconPacks()](/api/methods/register-icon-packs) - Register icon packs
+- [initialize()](/api/methods/initialize) - Configure Mermaid including layout settings

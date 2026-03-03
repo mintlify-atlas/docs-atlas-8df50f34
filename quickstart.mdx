@@ -1,80 +1,251 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Create your first Mermaid diagram in under 5 minutes
 ---
 
-## Get started in three steps
+# Quickstart
 
-Get your documentation site running locally and make your first customization.
+This guide will help you create and render your first Mermaid diagram. You'll learn the basic workflow for integrating Mermaid into your project.
 
-### Step 1: Set up your local environment
+## Step 1: Install Mermaid
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+First, install Mermaid in your project:
+
+<CodeGroup>
+
+```bash npm
+npm install mermaid
+```
+
+```bash yarn
+yarn add mermaid
+```
+
+```bash pnpm
+pnpm add mermaid
+```
+
+</CodeGroup>
+
+<Tip>
+Alternatively, you can use the CDN approach if you want to skip the installation. See the [installation guide](/installation#cdn) for details.
+</Tip>
+
+## Step 2: Create your HTML file
+
+Create an HTML file with a div element that will contain your diagram. Use the class `mermaid` to mark elements for automatic rendering:
+
+```html index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My First Mermaid Diagram</title>
+</head>
+<body>
+  <h1>My First Mermaid Diagram</h1>
+  
+  <div class="mermaid">
+    graph LR
+      A[Start] --> B{Is it working?}
+      B -->|Yes| C[Great!]
+      B -->|No| D[Check the console]
+      C --> E[End]
+      D --> E[End]
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+</body>
+</html>
+```
+
+<Note>
+The `mermaid.initialize()` function configures Mermaid. Setting `startOnLoad: true` tells Mermaid to automatically render all diagrams when the page loads.
+</Note>
+
+## Step 3: Initialize and render
+
+If you're using Mermaid in a JavaScript application, here's how to initialize and render diagrams programmatically:
+
+<Steps>
+  <Step title="Import Mermaid">
+    Import the Mermaid library in your JavaScript file:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    ```javascript app.js
+    import mermaid from 'mermaid';
+    ```
+  </Step>
+  
+  <Step title="Initialize Mermaid">
+    Configure Mermaid with the `initialize()` function. This should be done before rendering:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    ```javascript app.js
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      logLevel: 'error',
+    });
+    ```
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    Common configuration options:
+    - `startOnLoad`: Automatically render diagrams on page load (default: `true`)
+    - `theme`: Visual theme (`'default'`, `'dark'`, `'forest'`, `'neutral'`)
+    - `logLevel`: Console logging level (`'debug'`, `'info'`, `'warn'`, `'error'`, `'fatal'`)
+  </Step>
+  
+  <Step title="Render diagrams">
+    For automatic rendering, Mermaid will find all elements with the class `mermaid` and render them:
+    
+    ```javascript app.js
+    // This happens automatically when startOnLoad is true
+    await mermaid.run();
+    ```
+    
+    For manual rendering of a specific diagram:
+    
+    ```javascript app.js
+    const element = document.querySelector('#myDiagram');
+    const graphDefinition = `
+      graph TB
+        A[Start] --> B[Process]
+        B --> C[End]
+    `;
+    
+    const { svg, bindFunctions } = await mermaid.render('graphDiv', graphDefinition);
+    element.innerHTML = svg;
+    
+    // Bind any interactive functions (e.g., click handlers)
+    if (bindFunctions) {
+      bindFunctions(element);
+    }
+    ```
+  </Step>
+  
+  <Step title="View your diagram">
+    Open your HTML file in a browser. You should see your diagram rendered!
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Example: Complete application
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+Here's a complete example showing different ways to use Mermaid:
 
-### Step 3: Go live
+```html complete-example.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mermaid Examples</title>
+</head>
+<body>
+  <h1>Mermaid Diagram Examples</h1>
+  
+  <!-- Automatic rendering with class="mermaid" -->
+  <h2>Sequence Diagram</h2>
+  <div class="mermaid">
+    sequenceDiagram
+      Alice->>John: Hello John, how are you?
+      loop HealthCheck
+        John->>John: Fight against hypochondria
+      end
+      Note right of John: Rational thoughts!
+      John-->>Alice: Great!
+      John->>Bob: How about you?
+      Bob-->>John: Jolly good!
+  </div>
+  
+  <!-- Manual rendering -->
+  <h2>Flowchart</h2>
+  <div id="manualDiagram"></div>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    
+    // Initialize mermaid
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default'
+    });
+    
+    // Manual rendering example
+    const diagram = `
+      flowchart LR
+        A[Hard] -->|Text| B(Round)
+        B --> C{Decision}
+        C -->|One| D[Result 1]
+        C -->|Two| E[Result 2]
+    `;
+    
+    const { svg } = await mermaid.render('manualId', diagram);
+    document.getElementById('manualDiagram').innerHTML = svg;
+  </script>
+</body>
+</html>
+```
+
+## Common patterns
+
+### Parsing diagrams
+
+Validate diagram syntax without rendering:
+
+```javascript
+const diagramText = 'graph TD\n  A-->B';
+
+try {
+  const result = await mermaid.parse(diagramText);
+  console.log('Valid diagram:', result.diagramType);
+  // Output: { diagramType: 'flowchart-v2' }
+} catch (error) {
+  console.error('Invalid diagram:', error);
+}
+```
+
+### Error handling
+
+Handle rendering errors gracefully:
+
+```javascript
+await mermaid.run({
+  querySelector: '.mermaid',
+  suppressErrors: true, // Don't throw errors, just log them
+  postRenderCallback: (id) => {
+    console.log('Rendered diagram:', id);
+  }
+});
+```
+
+### Detecting diagram types
+
+```javascript
+const diagramText = 'sequenceDiagram\n  Alice->>Bob: Hello';
+const type = await mermaid.detectType(diagramText);
+console.log(type); // 'sequence'
+```
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Now that you've created your first diagram, explore more advanced topics:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Diagram syntax" icon="book">
+    Learn the syntax for different diagram types
+  </Card>
+  <Card title="Configuration" icon="gear">
+    Customize themes, styling, and behavior
+  </Card>
+  <Card title="API reference" icon="code">
+    Explore the complete Mermaid API
+  </Card>
+  <Card title="Examples" icon="lightbulb">
+    Browse real-world diagram examples
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+<Tip>
+Try the [Mermaid Live Editor](https://mermaid.live/) to experiment with different diagram types and see the results in real-time.
+</Tip>

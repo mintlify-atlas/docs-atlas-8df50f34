@@ -1,0 +1,276 @@
+---
+title: registerIconPacks()
+---
+
+Registers icon packs for use in Mermaid diagrams. This allows you to use icons from various icon libraries (like Font Awesome, Material Icons, etc.) within your diagrams.
+
+## Signature
+
+```typescript
+function registerIconPacks(
+  iconLoaders: IconLoader[]
+): void
+```
+
+## Parameters
+
+<ParamField path="iconLoaders" type="IconLoader[]" required>
+  Array of icon loader definitions. Each loader can be either synchronous (with icons provided directly) or asynchronous (with a loader function).
+
+  <Expandable title="IconLoader types">
+    <ParamField path="SyncIconLoader" type="object">
+      Synchronous icon loader with icons provided directly.
+
+      <Expandable title="properties">
+        <ParamField path="name" type="string" required>
+          Unique name for the icon pack (used as prefix when referencing icons).
+        </ParamField>
+
+        <ParamField path="icons" type="IconifyJSON" required>
+          Icon data in Iconify JSON format containing the icon definitions.
+        </ParamField>
+      </Expandable>
+    </ParamField>
+
+    <ParamField path="AsyncIconLoader" type="object">
+      Asynchronous icon loader that loads icons on-demand.
+
+      <Expandable title="properties">
+        <ParamField path="name" type="string" required>
+          Unique name for the icon pack (used as prefix when referencing icons).
+        </ParamField>
+
+        <ParamField path="loader" type="() => Promise<IconifyJSON>" required>
+          Async function that returns icon data in Iconify JSON format.
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return value
+
+`void` - This method does not return a value.
+
+## Throws
+
+- Throws an error if an icon loader doesn't have a `name` property
+- Throws an error if an icon loader has neither `icons` nor `loader` property
+
+## Examples
+
+### Synchronous icon pack
+
+```javascript
+import mermaid from 'mermaid';
+
+const customIcons = {
+  name: 'custom',
+  icons: {
+    prefix: 'custom',
+    icons: {
+      heart: {
+        body: '<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>',
+        width: 24,
+        height: 24
+      },
+      star: {
+        body: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>',
+        width: 24,
+        height: 24
+      }
+    }
+  }
+};
+
+mermaid.registerIconPacks([customIcons]);
+```
+
+### Asynchronous icon pack
+
+```javascript
+const fontAwesome = {
+  name: 'fa',
+  loader: async () => {
+    const response = await fetch('https://api.iconify.design/fa.json');
+    return await response.json();
+  }
+};
+
+mermaid.registerIconPacks([fontAwesome]);
+```
+
+### Multiple icon packs
+
+```javascript
+const iconPacks = [
+  {
+    name: 'mdi',
+    loader: async () => {
+      const { icons } = await import('@iconify/icons-mdi');
+      return icons;
+    }
+  },
+  {
+    name: 'heroicons',
+    loader: async () => {
+      const response = await fetch('https://api.iconify.design/heroicons.json');
+      return await response.json();
+    }
+  },
+  {
+    name: 'custom',
+    icons: {
+      prefix: 'custom',
+      icons: {
+        logo: {
+          body: '<circle cx="12" cy="12" r="10"/>',
+          width: 24,
+          height: 24
+        }
+      }
+    }
+  }
+];
+
+mermaid.registerIconPacks(iconPacks);
+```
+
+### Using icons in diagrams
+
+```javascript
+// Register icon pack first
+mermaid.registerIconPacks([{
+  name: 'fa',
+  loader: async () => {
+    const response = await fetch('https://api.iconify.design/fa.json');
+    return await response.json();
+  }
+}]);
+
+// Use icons in flowchart
+const diagram = `
+flowchart LR
+  A["@icon:fa:user User"]
+  B["@icon:fa:database Database"]
+  C["@icon:fa:server Server"]
+  A --> B --> C
+`;
+
+const { svg } = await mermaid.render('diagram1', diagram);
+```
+
+### Loading from NPM packages
+
+```javascript
+import { icons as mdiIcons } from '@iconify-json/mdi';
+
+mermaid.registerIconPacks([{
+  name: 'mdi',
+  icons: mdiIcons
+}]);
+```
+
+### Creating a reusable icon pack module
+
+```javascript
+// iconPacks.js
+export const corporateIcons = {
+  name: 'corp',
+  icons: {
+    prefix: 'corp',
+    icons: {
+      user: {
+        body: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>',
+        width: 24,
+        height: 24
+      },
+      process: {
+        body: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>',
+        width: 24,
+        height: 24
+      },
+      decision: {
+        body: '<path d="M12 2L2 12l10 10 10-10z"/>',
+        width: 24,
+        height: 24
+      }
+    }
+  }
+};
+
+// main.js
+import mermaid from 'mermaid';
+import { corporateIcons } from './iconPacks.js';
+
+mermaid.registerIconPacks([corporateIcons]);
+```
+
+### Error handling
+
+```javascript
+try {
+  mermaid.registerIconPacks([{
+    name: 'external',
+    loader: async () => {
+      const response = await fetch('https://example.com/icons.json');
+      if (!response.ok) {
+        throw new Error('Failed to load icons');
+      }
+      return await response.json();
+    }
+  }]);
+} catch (error) {
+  console.error('Failed to register icon pack:', error);
+}
+```
+
+## Icon reference format
+
+When using registered icons in diagrams, reference them as:
+
+```
+@icon:prefix:iconName
+```
+
+Where:
+- `prefix` is the icon pack `name`
+- `iconName` is the icon identifier within that pack
+
+Examples:
+- `@icon:fa:home` - Home icon from Font Awesome
+- `@icon:mdi:account` - Account icon from Material Design Icons
+- `@icon:custom:logo` - Custom logo icon
+
+## Iconify JSON format
+
+Icon data must follow the Iconify JSON format:
+
+```typescript
+{
+  prefix: string;  // Icon set prefix
+  icons: {
+    [name: string]: {
+      body: string;     // SVG path data
+      width?: number;   // Icon width
+      height?: number;  // Icon height
+      // ... other Iconify properties
+    }
+  }
+}
+```
+
+## Usage notes
+
+- Icon packs must be registered before rendering diagrams that use them
+- Async loaders only fetch data when an icon from that pack is first used
+- Icon names are case-sensitive
+- The `name` field must be unique across all registered icon packs
+- Icons are rendered as SVG and inherit diagram styling where applicable
+- If an icon is not found, a fallback "unknown" icon (question mark) is displayed
+
+## Related methods
+
+- [registerExternalDiagrams()](/api/methods/register-external-diagrams) - Register custom diagram types
+- [registerLayoutLoaders()](/api/methods/register-layout-loaders) - Register layout algorithms
+- [initialize()](/api/methods/initialize) - Configure Mermaid

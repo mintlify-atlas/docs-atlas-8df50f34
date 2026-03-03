@@ -1,0 +1,195 @@
+---
+title: RunOptions
+description: Options for the run function to render multiple diagrams
+---
+
+The `RunOptions` interface defines configuration options for the `mermaid.run()` function, which automatically finds and renders Mermaid diagrams in the DOM.
+
+## Properties
+
+<ResponseField name="querySelector" type="string" default=".mermaid">
+  The CSS query selector to use when finding elements to render. By default, it looks for elements with the `mermaid` class.
+</ResponseField>
+
+<ResponseField name="nodes" type="ArrayLike<HTMLElement>">
+  Specific nodes to render. If this is set, `querySelector` will be ignored. This allows you to provide an explicit list of elements to render instead of using a selector.
+</ResponseField>
+
+<ResponseField name="postRenderCallback" type="(id: string) => unknown">
+  A callback function to call after each diagram is rendered. The function receives the diagram ID as a parameter.
+</ResponseField>
+
+<ResponseField name="suppressErrors" type="boolean" default={false}>
+  If `true`, errors will be logged to the console but not thrown. This allows the rendering process to continue even if some diagrams fail.
+</ResponseField>
+
+## Example usage
+
+### Basic usage with default selector
+
+```javascript
+import mermaid from 'mermaid';
+
+// Renders all elements with class "mermaid"
+await mermaid.run();
+```
+
+### Custom query selector
+
+```javascript
+import mermaid from 'mermaid';
+
+// Render all elements with class "diagram"
+await mermaid.run({
+  querySelector: '.diagram'
+});
+```
+
+### Using specific nodes
+
+```javascript
+import mermaid from 'mermaid';
+
+const nodes = document.querySelectorAll('.my-custom-class');
+
+await mermaid.run({
+  nodes: nodes
+});
+```
+
+### With post-render callback
+
+```javascript
+import mermaid from 'mermaid';
+
+await mermaid.run({
+  querySelector: '.mermaid',
+  postRenderCallback: (id) => {
+    console.log(`Rendered diagram with id: ${id}`);
+    // Add custom behavior after each diagram renders
+    const element = document.getElementById(id);
+    if (element) {
+      element.classList.add('rendered');
+    }
+  }
+});
+```
+
+### With error suppression
+
+```javascript
+import mermaid from 'mermaid';
+
+// Continue rendering even if some diagrams have errors
+await mermaid.run({
+  suppressErrors: true,
+  postRenderCallback: (id) => {
+    console.log(`Successfully rendered: ${id}`);
+  }
+});
+```
+
+### Complete example
+
+```javascript
+import mermaid from 'mermaid';
+
+async function renderAllDiagrams() {
+  try {
+    await mermaid.run({
+      querySelector: '.diagram',
+      suppressErrors: false,
+      postRenderCallback: (id) => {
+        console.log(`Diagram ${id} rendered`);
+        
+        // Add click handlers or other interactive features
+        const element = document.getElementById(id);
+        if (element) {
+          element.addEventListener('click', () => {
+            console.log(`Clicked on ${id}`);
+          });
+        }
+      }
+    });
+    
+    console.log('All diagrams rendered successfully');
+  } catch (error) {
+    console.error('Error rendering diagrams:', error);
+  }
+}
+
+renderAllDiagrams();
+```
+
+### Rendering specific elements
+
+```javascript
+import mermaid from 'mermaid';
+
+// Get specific elements to render
+const diagramContainers = document.querySelectorAll('.dynamic-diagram');
+
+await mermaid.run({
+  nodes: diagramContainers,
+  postRenderCallback: (id) => {
+    // Track rendered diagrams
+    analytics.track('diagram_rendered', { id });
+  },
+  suppressErrors: true
+});
+```
+
+### Using with initialization
+
+```javascript
+import mermaid from 'mermaid';
+
+// Initialize with config
+mermaid.initialize({
+  theme: 'dark',
+  logLevel: 'error'
+});
+
+// Then run with options
+await mermaid.run({
+  querySelector: '.mermaid-diagram',
+  postRenderCallback: (id) => {
+    console.log(`Rendered ${id} with dark theme`);
+  }
+});
+```
+
+## TypeScript definition
+
+```typescript
+export interface RunOptions {
+  /**
+   * The query selector to use when finding elements to render. Default: `".mermaid"`.
+   */
+  querySelector?: string;
+  
+  /**
+   * The nodes to render. If this is set, `querySelector` will be ignored.
+   */
+  nodes?: ArrayLike<HTMLElement>;
+  
+  /**
+   * A callback to call after each diagram is rendered.
+   */
+  postRenderCallback?: (id: string) => unknown;
+  
+  /**
+   * If `true`, errors will be logged to the console, but not thrown. Default: `false`
+   */
+  suppressErrors?: boolean;
+}
+```
+
+## Notes
+
+- The `run()` function processes elements that don't have the `data-processed` attribute
+- Elements are marked with `data-processed="true"` after rendering to prevent re-rendering
+- If both `querySelector` and `nodes` are provided, `nodes` takes precedence
+- The `postRenderCallback` is called for each successfully rendered diagram
+- When `suppressErrors` is `true`, the first error encountered will still be logged but won't stop execution
+- Use `mermaid.initialize()` before `mermaid.run()` to set global configuration

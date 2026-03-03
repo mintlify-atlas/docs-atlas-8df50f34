@@ -1,0 +1,255 @@
+---
+title: Venn diagrams
+description: Show relationships between sets using overlapping circles
+---
+
+Venn diagrams show relationships between sets using overlapping circles. They are useful for visualizing intersections, unions, and differences between groups.
+
+<Note>
+This is a new diagram type in Mermaid. Its syntax may evolve in future versions. Use the `venn-beta` keyword.
+</Note>
+
+## Basic Venn diagram
+
+This example shows team overlap:
+
+```mermaid
+venn-beta
+  title "Team overlap"
+  set Frontend
+  set Backend
+  union Frontend,Backend["APIs"]
+```
+
+## Syntax overview
+
+### Starting a diagram
+
+Begin with `venn-beta` and optionally add a title:
+
+```
+venn-beta
+  title "Your Title"
+```
+
+### Defining sets
+
+Use `set` for individual sets:
+
+```
+set SetName
+```
+
+Set identifiers can be bare words (`A`, `Set_1`) or quoted strings (`"Foo Bar"`).
+
+### Defining unions
+
+Use `union` for overlapping regions:
+
+```
+union SetA,SetB
+```
+
+Union identifiers must reference sets defined earlier in the diagram.
+
+## Labels
+
+Use bracket syntax `["..."]` to set display labels:
+
+```mermaid
+venn-beta
+  set A["Alpha"]
+  set B["Beta"]
+  union A,B["AB"]
+```
+
+This keeps identifiers short while showing descriptive labels in the diagram.
+
+## Sizes
+
+Add sizes to sets or unions using `:N` suffix:
+
+```mermaid
+venn-beta
+  set A["Alpha"]:20
+  set B["Beta"]:12
+  union A,B["AB"]:3
+```
+
+Sizes are proportional and help visualize the relative magnitude of each region.
+
+## Text nodes
+
+Add labels inside sets or unions using `text` nodes:
+
+```mermaid
+venn-beta
+  set A["Frontend"]
+    text A1["React"]
+    text A2["Design Systems"]
+  set B["Backend"]
+    text B1["API"]
+  union A,B["Shared"]
+    text AB1["OpenAPI"]
+```
+
+### Text node rules
+
+- Use indentation to attach text to the most recent `set` or `union`
+- Text nodes support the same bracket syntax for display labels
+- Multiple text nodes can be added to any region
+
+## Styling
+
+Apply visual styles using `style` statements:
+
+```mermaid
+venn-beta
+  set A["Alpha"]:20
+    text A1["React"]
+    text A2["Design Systems"]
+  set B["Beta"]:12
+  union A,B["AB"]:3
+  style A fill:#ff6b6b
+  style A,B color:#333
+  style A1 color:red
+```
+
+### Supported style properties
+
+<Accordion title="Style properties">
+
+- `fill` - Change fill color
+- `color` - Change text color
+- `stroke` - Change stroke color
+- `stroke-width` - Change stroke width
+- `fill-opacity` - Change fill opacity
+
+</Accordion>
+
+### Styling multiple elements
+
+You can style multiple elements in one statement:
+
+```
+style A,B color:#333
+```
+
+## Complete examples
+
+### Skills overlap
+
+```mermaid
+venn-beta
+  title "Developer Skills"
+  set Frontend["Frontend"]:30
+    text F1["React"]
+    text F2["CSS"]
+    text F3["HTML"]
+  set Backend["Backend"]:25
+    text B1["Node.js"]
+    text B2["SQL"]
+  set DevOps["DevOps"]:20
+    text D1["Docker"]
+    text D2["K8s"]
+  union Frontend,Backend["Full Stack"]:10
+    text FB1["REST APIs"]
+    text FB2["GraphQL"]
+  union Backend,DevOps["SRE"]:5
+    text BD1["Monitoring"]
+  union Frontend,DevOps["CI/CD"]:3
+    text FD1["Build Tools"]
+  union Frontend,Backend,DevOps["All"]:2
+    text ALL["Git"]
+```
+
+### Product features
+
+```mermaid
+venn-beta
+  title "Product Feature Sets"
+  set Basic["Basic Plan"]:100
+    text B1["Core Features"]
+    text B2["Email Support"]
+  set Pro["Pro Plan"]:50
+    text P1["Advanced Analytics"]
+    text P2["API Access"]
+  union Basic,Pro["Both Plans"]:30
+    text BP1["Cloud Storage"]
+    text BP2["Mobile App"]
+  style Basic fill:#4CAF50
+  style Pro fill:#2196F3
+  style Basic,Pro color:white
+```
+
+### Customer segments
+
+```mermaid
+venn-beta
+  title "Customer Overlap Analysis"
+  set Mobile["Mobile Users"]:1500
+  set Desktop["Desktop Users"]:1200
+  set Premium["Premium"]:800
+  union Mobile,Desktop["Multi-platform"]:600
+  union Mobile,Premium["Mobile Premium"]:300
+  union Desktop,Premium["Desktop Premium"]:250
+  union Mobile,Desktop,Premium["All Platforms Premium"]:150
+  style Premium fill:#FFD700
+  style Mobile fill:#4CAF50
+  style Desktop fill:#2196F3
+```
+
+## Three-set diagrams
+
+Venn diagrams can show complex relationships between three sets:
+
+```mermaid
+venn-beta
+  title "Technology Stack"
+  set A["Languages"]
+    text A1["TypeScript"]
+  set B["Frameworks"]
+    text B1["React"]
+  set C["Tools"]
+    text C1["Webpack"]
+  union A,B["App Layer"]
+    text AB1["Next.js"]
+  union B,C["Build"]
+    text BC1["Babel"]
+  union A,C["Tooling"]
+    text AC1["ESLint"]
+  union A,B,C["Core"]
+    text ABC1["Node.js"]
+```
+
+## Use cases
+
+Venn diagrams are commonly used for:
+
+- **Set theory**: Teaching mathematical concepts
+- **Feature comparison**: Comparing product features across tiers
+- **Audience analysis**: Showing customer segment overlaps
+- **Skill mapping**: Visualizing team competencies
+- **Data analysis**: Showing intersections in datasets
+- **Decision making**: Comparing options and their overlaps
+
+## Best practices
+
+<Tip>
+For clarity:
+- Limit diagrams to 2-3 sets (more becomes visually complex)
+- Use descriptive labels for all regions
+- Apply sizes when representing quantitative data
+- Use styling to highlight important regions
+- Add text nodes to clarify what belongs in each region
+</Tip>
+
+## Limitations
+
+<Note>
+Venn diagrams in Mermaid:
+- Work best with 2-3 sets (4+ sets become very complex)
+- Require all union sets to be previously defined
+- Show proportional relationships when sizes are specified
+- May not perfectly represent complex mathematical set relationships
+</Note>

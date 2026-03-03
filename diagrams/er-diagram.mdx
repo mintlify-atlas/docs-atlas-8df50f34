@@ -1,0 +1,321 @@
+---
+title: Entity Relationship diagrams
+description: Model data structures and relationships between entities in a domain
+---
+
+An entity-relationship (ER) model describes interrelated things of interest in a specific domain of knowledge. An ER model is composed of entity types and specifies relationships that can exist between entities.
+
+## Basic example
+
+```mermaid
+---
+title: Order example
+---
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+```
+
+<Note>
+Entity names are often capitalized, although this is not required in Mermaid.
+</Note>
+
+## Entities with attributes
+
+Define attributes with their types:
+
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    CUSTOMER {
+        string name
+        string custNumber
+        string sector
+    }
+    ORDER ||--|{ LINE-ITEM : contains
+    ORDER {
+        int orderNumber
+        string deliveryAddress
+    }
+    LINE-ITEM {
+        string productCode
+        int quantity
+        float pricePerUnit
+    }
+```
+
+## Syntax
+
+### Entities and relationships
+
+Each statement consists of:
+
+```
+<first-entity> [<relationship> <second-entity> : <relationship-label>]
+```
+
+Example:
+
+```mermaid
+erDiagram
+    PROPERTY ||--|{ ROOM : contains
+```
+
+This reads as: "A property contains one or more rooms, and a room is part of one and only one property."
+
+### Relationship syntax
+
+The relationship consists of three parts:
+- Cardinality of the first entity
+- Whether the relationship confers identity
+- Cardinality of the second entity
+
+#### Cardinality
+
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    CUSTOMER {
+        string name
+    }
+    ORDER {
+        int orderNumber
+    }
+```
+
+<Accordion title="Cardinality values">
+| Value (left) | Value (right) | Meaning                       |
+| :----------: | :-----------: | ----------------------------- |
+|    `\|o`     |     `o\|`     | Zero or one                   |
+|    `\|\|`    |    `\|\|`     | Exactly one                   |
+|     `}o`     |     `o{`      | Zero or more (no upper limit) |
+|    `}\|`     |     `\|{`     | One or more (no upper limit)  |
+
+Aliases like `one or more`, `zero or many`, `1+`, `0+` are also supported.
+</Accordion>
+
+### Identification
+
+Relationships can be identifying (solid line) or non-identifying (dashed line):
+
+```mermaid
+erDiagram
+    CAR ||--o{ NAMED-DRIVER : allows
+    PERSON }o..o{ NAMED-DRIVER : is
+```
+
+Using aliases:
+
+```mermaid
+erDiagram
+    CAR 1 to zero or more NAMED-DRIVER : allows
+    PERSON many(0) optionally to 0+ NAMED-DRIVER : is
+```
+
+## Attributes
+
+Define attributes with type and name:
+
+```mermaid
+erDiagram
+    CAR ||--o{ NAMED-DRIVER : allows
+    CAR {
+        string registrationNumber
+        string make
+        string model
+    }
+    PERSON ||--o{ NAMED-DRIVER : is
+    PERSON {
+        string firstName
+        string lastName
+        int age
+    }
+```
+
+### Attribute keys and comments
+
+Specify primary keys, foreign keys, and comments:
+
+```mermaid
+erDiagram
+    CAR ||--o{ NAMED-DRIVER : allows
+    CAR {
+        string registrationNumber PK
+        string make
+        string model
+        string[] parts
+    }
+    PERSON ||--o{ NAMED-DRIVER : is
+    PERSON {
+        string driversLicense PK "The license #"
+        string(99) firstName "Only 99 characters are allowed"
+        string lastName
+        string phone UK
+        int age
+    }
+    NAMED-DRIVER {
+        string carRegistrationNumber PK, FK
+        string driverLicence PK, FK
+    }
+    MANUFACTURER only one to zero or more CAR : makes
+```
+
+<Tip>
+Available keys: `PK` (Primary Key), `FK` (Foreign Key), `UK` (Unique Key). Multiple keys can be specified with commas.
+</Tip>
+
+## Entity name aliases
+
+Use aliases for display names:
+
+```mermaid
+erDiagram
+    p[Person] {
+        string firstName
+        string lastName
+    }
+    a["Customer Account"] {
+        string email
+    }
+    p ||--o| a : has
+```
+
+## Unicode and Markdown
+
+### Unicode text
+
+```mermaid
+erDiagram
+    "This ❤ Unicode"
+```
+
+### Markdown formatting
+
+```mermaid
+erDiagram
+    "This **is** _Markdown_"
+```
+
+## Direction
+
+Set the diagram orientation:
+
+### Top to bottom
+
+```mermaid
+erDiagram
+    direction TB
+    CUSTOMER ||--o{ ORDER : places
+    CUSTOMER {
+        string name
+        string custNumber
+        string sector
+    }
+    ORDER ||--|{ LINE-ITEM : contains
+    ORDER {
+        int orderNumber
+        string deliveryAddress
+    }
+    LINE-ITEM {
+        string productCode
+        int quantity
+        float pricePerUnit
+    }
+```
+
+### Left to right
+
+```mermaid
+erDiagram
+    direction LR
+    CUSTOMER ||--o{ ORDER : places
+    CUSTOMER {
+        string name
+    }
+    ORDER {
+        int orderNumber
+    }
+```
+
+<Accordion title="Direction options">
+- `TB` - Top to bottom
+- `BT` - Bottom to top
+- `RL` - Right to left
+- `LR` - Left to right
+</Accordion>
+
+## Styling
+
+### Styling a node
+
+```mermaid
+erDiagram
+    id1||--||id2 : label
+    style id1 fill:#f9f,stroke:#333,stroke-width:4px
+    style id2 fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+```
+
+### Using classes
+
+```mermaid
+erDiagram
+    direction TB
+    CAR:::someclass {
+        string registrationNumber
+        string make
+        string model
+    }
+    PERSON:::someclass {
+        string firstName
+        string lastName
+        int age
+    }
+    HOUSE:::someclass
+
+    classDef someclass fill:#f96
+```
+
+With relationships:
+
+```mermaid
+erDiagram
+    CAR {
+        string registrationNumber
+        string make
+        string model
+    }
+    PERSON {
+        string firstName
+        string lastName
+        int age
+    }
+    PERSON:::foo ||--|| CAR : owns
+    PERSON o{--|| HOUSE:::bar : has
+
+    classDef foo stroke:#f00
+    classDef bar stroke:#0f0
+    classDef foobar stroke:#00f
+```
+
+## Configuration
+
+### Layout
+
+For larger diagrams, use ELK layout:
+
+```mermaid
+---
+title: Order example
+config:
+    layout: elk
+---
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+```
+
+<Note>
+Requires Mermaid version 9.4+ with lazy-loading enabled.
+</Note>

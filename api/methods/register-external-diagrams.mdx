@@ -1,0 +1,238 @@
+---
+title: registerExternalDiagrams()
+---
+
+Registers custom or external diagram types to extend Mermaid's built-in diagram support. This allows you to add new diagram syntaxes and renderers.
+
+## Signature
+
+```typescript
+async function registerExternalDiagrams(
+  diagrams: ExternalDiagramDefinition[],
+  options?: {
+    lazyLoad?: boolean;
+  }
+): Promise<void>
+```
+
+## Parameters
+
+<ParamField path="diagrams" type="ExternalDiagramDefinition[]" required>
+  Array of external diagram definitions to register.
+
+  <Expandable title="ExternalDiagramDefinition structure">
+    <ParamField path="id" type="string" required>
+      Unique identifier for the diagram type.
+    </ParamField>
+
+    <ParamField path="detector" type="(text: string, config?: MermaidConfig) => boolean" required>
+      Function that detects if a given text should be handled by this diagram type. Returns `true` if this diagram should process the text.
+    </ParamField>
+
+    <ParamField path="loader" type="() => Promise<{ id: string; diagram: DiagramDefinition }>" required>
+      Async function that loads the diagram implementation. Should return an object with the diagram `id` and `diagram` definition containing `db`, `renderer`, and `parser`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="options" type="object">
+  Configuration options for registration.
+
+  <Expandable title="properties">
+    <ParamField path="lazyLoad" type="boolean" default={true}>
+      If `true`, diagrams are loaded on-demand when first encountered. If `false`, all diagrams are loaded immediately.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Return value
+
+`Promise<void>` - Resolves when registration is complete (and diagrams are loaded if `lazyLoad` is `false`).
+
+## Examples
+
+### Basic external diagram registration
+
+```javascript
+import mermaid from 'mermaid';
+
+const myCustomDiagram = {
+  id: 'custom',
+  detector: (text) => {
+    return text.match(/^\s*custom/) !== null;
+  },
+  loader: async () => {
+    // Dynamically import your diagram implementation
+    const { diagram } = await import('./diagrams/custom/customDiagram.js');
+    return { id: 'custom', diagram };
+  }
+};
+
+await mermaid.registerExternalDiagrams([myCustomDiagram]);
+```
+
+### Registering multiple diagrams
+
+```javascript
+const externalDiagrams = [
+  {
+    id: 'timeline',
+    detector: (text) => text.trim().startsWith('timeline'),
+    loader: async () => {
+      const { diagram } = await import('./diagrams/timeline.js');
+      return { id: 'timeline', diagram };
+    }
+  },
+  {
+    id: 'mindmap',
+    detector: (text) => text.trim().startsWith('mindmap'),
+    loader: async () => {
+      const { diagram } = await import('./diagrams/mindmap.js');
+      return { id: 'mindmap', diagram };
+    }
+  }
+];
+
+await mermaid.registerExternalDiagrams(externalDiagrams);
+```
+
+### Eager loading
+
+```javascript
+// Load diagrams immediately instead of lazy loading
+await mermaid.registerExternalDiagrams(
+  [myCustomDiagram],
+  { lazyLoad: false }
+);
+
+// All diagrams are now loaded and ready
+```
+
+### Advanced detector with config
+
+```javascript
+const advancedDiagram = {
+  id: 'advanced',
+  detector: (text, config) => {
+    // Use config to influence detection
+    const enableAdvanced = config?.advanced?.enabled ?? true;
+    
+    if (!enableAdvanced) {
+      return false;
+    }
+    
+    return /^\s*advanced/.test(text);
+  },
+  loader: async () => {
+    const { diagram } = await import('./diagrams/advanced.js');
+    return { id: 'advanced', diagram };
+  }
+};
+
+await mermaid.registerExternalDiagrams([advancedDiagram]);
+```
+
+### Complete diagram implementation example
+
+```javascript
+// diagrams/custom/customDiagram.js
+export const diagram = {
+  db: {
+    clear: () => {
+      // Clear diagram state
+    },
+    getAccTitle: () => 'Custom Diagram',
+    getAccDescription: () => 'A custom diagram',
+    setAccTitle: (title) => {
+      // Set title
+    },
+    setAccDescription: (desc) => {
+      // Set description
+    },
+    getDiagramTitle: () => 'Custom',
+    setDiagramTitle: (title) => {
+      // Set diagram title
+    }
+  },
+  renderer: {
+    draw: async (text, id, version) => {
+      // Render the diagram
+      const svg = document.getElementById(id);
+      // Your rendering logic here
+    }
+  },
+  parser: {
+    parse: async (text) => {
+      // Parse the diagram text
+      // Validate syntax and build internal representation
+    }
+  },
+  styles: () => {
+    // Return CSS styles for the diagram
+    return '.custom { fill: blue; }';
+  }
+};
+
+// main.js
+const customDiagram = {
+  id: 'custom',
+  detector: (text) => /^\s*custom/.test(text),
+  loader: async () => {
+    const { diagram } = await import('./diagrams/custom/customDiagram.js');
+    return { id: 'custom', diagram };
+  }
+};
+
+await mermaid.registerExternalDiagrams([customDiagram]);
+
+// Now you can use it
+const { svg } = await mermaid.render('test', 'custom\n  node1 -> node2');
+```
+
+### Using with initialization
+
+```javascript
+import mermaid from 'mermaid';
+
+// Register diagrams first
+await mermaid.registerExternalDiagrams([customDiagram]);
+
+// Then initialize
+mermaid.initialize({
+  theme: 'default',
+  // Custom diagram config
+  custom: {
+    // Custom options
+  }
+});
+
+// Render
+await mermaid.run();
+```
+
+## Usage notes
+
+- Must be called before attempting to render diagrams of the registered types
+- Detectors are checked in registration order
+- If multiple detectors match, the first registered one is used
+- With `lazyLoad: true` (default), diagram code is only loaded when first needed
+- With `lazyLoad: false`, all diagram implementations are loaded immediately
+- External diagrams have access to the same configuration system as built-in diagrams
+
+## Diagram definition structure
+
+Your diagram loader must return an object with:
+
+- `id`: String identifier matching the registration
+- `diagram`: Object containing:
+  - `db`: Database/state management object
+  - `renderer`: Object with `draw()` method
+  - `parser`: Object with `parse()` method
+  - `styles`: Optional function returning CSS
+  - `init`: Optional initialization function
+
+## Related methods
+
+- [registerIconPacks()](/api/methods/register-icon-packs) - Register custom icon packs
+- [registerLayoutLoaders()](/api/methods/register-layout-loaders) - Register layout algorithms
+- [initialize()](/api/methods/initialize) - Configure Mermaid

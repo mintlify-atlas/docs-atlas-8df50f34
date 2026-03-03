@@ -1,0 +1,354 @@
+---
+title: ZenUML sequence diagrams
+description: Create sequence diagrams using ZenUML syntax to show process interactions and order
+---
+
+ZenUML is an alternative syntax for creating sequence diagrams in Mermaid. It shows how processes operate with one another and in what order, using a different approach than the standard Mermaid sequence diagram syntax.
+
+<Note>
+ZenUML uses experimental lazy loading and async rendering features which may change in future versions.
+</Note>
+
+## Basic sequence diagram
+
+This example shows a simple conversation between Alice and John:
+
+```mermaid
+zenuml
+    title Demo
+    Alice->John: Hello John, how are you?
+    John->Alice: Great!
+    Alice->John: See you later!
+```
+
+## Participants
+
+### Implicit declaration
+
+Participants are automatically created when first used in the diagram:
+
+```mermaid
+zenuml
+    Alice->Bob: Hi Bob
+    Bob->Alice: Hi Alice
+```
+
+### Explicit declaration
+
+You can control the order of participants by declaring them explicitly:
+
+```mermaid
+zenuml
+    title Declare participant (optional)
+    Bob
+    Alice
+    Alice->Bob: Hi Bob
+    Bob->Alice: Hi Alice
+```
+
+### Annotators
+
+Use annotators to display participants as specific symbols:
+
+```mermaid
+zenuml
+    title Annotators
+    @Actor Alice
+    @Database Bob
+    Alice->Bob: Hi Bob
+    Bob->Alice: Hi Alice
+```
+
+<Accordion title="Available annotators">
+
+ZenUML supports various annotator types including:
+
+- `@Actor` - Human actor
+- `@Database` - Database system
+- `@Boundary` - System boundary
+- `@Control` - Control element
+- `@Entity` - Entity
+- `@Queue` - Message queue
+
+</Accordion>
+
+### Aliases
+
+Create shorter identifiers with descriptive labels:
+
+```mermaid
+zenuml
+    title Aliases
+    A as Alice
+    J as John
+    A->J: Hello John, how are you?
+    J->A: Great!
+```
+
+## Messages
+
+ZenUML supports four types of messages:
+
+### Sync messages
+
+Synchronous (blocking) method calls:
+
+```mermaid
+zenuml
+    title Sync message
+    A.SyncMessage
+    A.SyncMessage(with, parameters) {
+      B.nestedSyncMessage()
+    }
+```
+
+### Async messages
+
+Asynchronous (non-blocking) messages:
+
+```mermaid
+zenuml
+    title Async message
+    Alice->Bob: How are you?
+```
+
+### Creation messages
+
+Create new objects using the `new` keyword:
+
+```mermaid
+zenuml
+    new A1
+    new A2(with, parameters)
+```
+
+### Reply messages
+
+There are three ways to express replies:
+
+```mermaid
+zenuml
+    // 1. assign a variable from a sync message.
+    a = A.SyncMessage()
+
+    // 1.1. optionally give the variable a type
+    SomeType a = A.SyncMessage()
+
+    // 2. use return keyword
+    A.SyncMessage() {
+    return result
+    }
+
+    // 3. use @return or @reply annotator on an async message
+    @return
+    A->B: result
+```
+
+### Early return example
+
+The `@return` annotator is useful for returning to one level up:
+
+```mermaid
+zenuml
+    title Reply message
+    Client->A.method() {
+      B.method() {
+        if(condition) {
+          return x1
+          // return early
+          @return
+          A->Client: x11
+        }
+      }
+      return x2
+    }
+```
+
+## Nesting
+
+Sync and creation messages support nesting with curly braces:
+
+```mermaid
+zenuml
+    A.method() {
+      B.nested_sync_method()
+      B->C: nested async message
+    }
+```
+
+## Comments
+
+Add comments using `//` syntax. Comments are rendered above messages and support Markdown:
+
+```mermaid
+zenuml
+    // a comment on a participant will not be rendered
+    BookService
+    // a comment on a message.
+    // **Markdown** is supported.
+    BookService.getBook()
+```
+
+## Loops
+
+Create loops using `while`, `for`, `forEach`, or `loop`:
+
+```mermaid
+zenuml
+    Alice->John: Hello John, how are you?
+    while(true) {
+      John->Alice: Great!
+    }
+```
+
+### Loop syntax
+
+```
+while(condition) {
+    ...statements...
+}
+```
+
+## Alternative paths
+
+Express conditional logic with `if/else`:
+
+```mermaid
+zenuml
+    Alice->Bob: Hello Bob, how are you?
+    if(is_sick) {
+      Bob->Alice: Not so good :(
+    } else {
+      Bob->Alice: Feeling fresh like a daisy
+    }
+```
+
+### Alt syntax
+
+```
+if(condition1) {
+    ...statements...
+} else if(condition2) {
+    ...statements...
+} else {
+    ...statements...
+}
+```
+
+## Optional fragments
+
+Render optional fragments with `opt`:
+
+```mermaid
+zenuml
+    Alice->Bob: Hello Bob, how are you?
+    Bob->Alice: Not so good :(
+    opt {
+      Bob->Alice: Thanks for asking
+    }
+```
+
+## Parallel execution
+
+Show actions happening in parallel:
+
+```mermaid
+zenuml
+    par {
+        Alice->Bob: Hello guys!
+        Alice->John: Hello guys!
+    }
+```
+
+### Parallel syntax
+
+```
+par {
+  statement1
+  statement2
+  statement3
+}
+```
+
+## Try/catch/finally
+
+Model exception handling and breaks in sequence flow:
+
+```mermaid
+zenuml
+    try {
+      Consumer->API: Book something
+      API->BookingService: Start booking process
+    } catch {
+      API->Consumer: show failure
+    } finally {
+      API->BookingService: rollback status
+    }
+```
+
+### Exception syntax
+
+```
+try {
+  ...statements...
+} catch {
+  ...statements...
+} finally {
+  ...statements...
+}
+```
+
+## Complete example
+
+Here's a comprehensive example showing various ZenUML features:
+
+```mermaid
+zenuml
+    title Online Booking System
+    @Actor Customer
+    @Boundary WebApp
+    @Control BookingService
+    @Database Database
+    
+    Customer->WebApp: Select dates
+    WebApp.checkAvailability() {
+      BookingService.searchRooms(dates) {
+        result = Database.query()
+        return result
+      }
+      return rooms
+    }
+    
+    Customer->WebApp: Book room
+    try {
+      WebApp->BookingService: createBooking()
+      BookingService->Database: save()
+      BookingService->Customer: Confirmation email
+    } catch {
+      BookingService->Customer: Error notification
+    }
+```
+
+## Integration with web pages
+
+<Accordion title="Using ZenUML in HTML">
+
+To use ZenUML diagrams in a web page:
+
+```html
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  import zenuml from 'https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-zenuml@0.1.0/dist/mermaid-zenuml.esm.min.mjs';
+  await mermaid.registerExternalDiagrams([zenuml]);
+</script>
+```
+
+</Accordion>
+
+<Tip>
+ZenUML syntax is often more concise than traditional sequence diagram syntax, especially for nested interactions and complex control flow.
+</Tip>
+
+<Note>
+While ZenUML and standard Mermaid sequence diagrams produce similar visual results, they use different syntax. Choose the one that best fits your workflow.
+</Note>

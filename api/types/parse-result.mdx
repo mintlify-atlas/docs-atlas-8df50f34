@@ -1,0 +1,147 @@
+---
+title: ParseResult
+description: Result object returned by the parse function
+---
+
+The `ParseResult` interface represents the output of the Mermaid parse function. It contains information about the parsed diagram, including its type and configuration.
+
+## Properties
+
+<ResponseField name="diagramType" type="string" required>
+  The type of diagram that was parsed (e.g., 'flowchart', 'sequence', 'gantt', 'class', 'state', etc.).
+</ResponseField>
+
+<ResponseField name="config" type="MermaidConfig" required>
+  The configuration object for the diagram. This includes any config passed as YAML frontmatter or directives within the diagram definition.
+</ResponseField>
+
+## Example usage
+
+### Basic parsing
+
+```javascript
+import mermaid from 'mermaid';
+
+const result = await mermaid.parse('graph TD; A-->B');
+console.log(result);
+// { diagramType: 'flowchart-v2', config: { ... } }
+```
+
+### Parsing with error handling
+
+```javascript
+import mermaid from 'mermaid';
+
+try {
+  const result = await mermaid.parse('flowchart\n  a --> b');
+  console.log(`Valid ${result.diagramType} diagram`);
+  console.log('Config:', result.config);
+} catch (error) {
+  console.error('Invalid diagram syntax:', error);
+}
+```
+
+### Parsing with suppressErrors option
+
+```javascript
+import mermaid from 'mermaid';
+
+// Returns false instead of throwing an error for invalid syntax
+const result = await mermaid.parse('invalid syntax', { suppressErrors: true });
+
+if (result === false) {
+  console.log('Invalid diagram');
+} else {
+  console.log(`Valid ${result.diagramType} diagram`);
+}
+```
+
+### Validating diagram syntax
+
+```javascript
+async function validateDiagram(text) {
+  const result = await mermaid.parse(text, { suppressErrors: true });
+  
+  if (result === false) {
+    return { valid: false };
+  }
+  
+  return {
+    valid: true,
+    type: result.diagramType,
+    config: result.config
+  };
+}
+
+// Usage
+const validation = await validateDiagram('graph LR; A-->B');
+if (validation.valid) {
+  console.log(`Valid ${validation.type} diagram`);
+} else {
+  console.log('Invalid diagram');
+}
+```
+
+### Accessing diagram configuration
+
+```javascript
+import mermaid from 'mermaid';
+
+const diagramText = `
+%%{init: {'theme':'forest', 'themeVariables': { 'primaryColor': '#ff0000'}}}%%
+graph TD
+  A-->B
+`;
+
+const result = await mermaid.parse(diagramText);
+
+console.log('Diagram type:', result.diagramType);
+console.log('Theme:', result.config.theme); // 'forest'
+console.log('Primary color:', result.config.themeVariables.primaryColor); // '#ff0000'
+```
+
+### Type checking before rendering
+
+```javascript
+async function renderIfValid(diagramText) {
+  const parseResult = await mermaid.parse(diagramText, { suppressErrors: true });
+  
+  if (parseResult === false) {
+    console.error('Cannot render invalid diagram');
+    return;
+  }
+  
+  console.log(`Rendering ${parseResult.diagramType}...`);
+  const renderResult = await mermaid.render('myId', diagramText);
+  document.getElementById('output').innerHTML = renderResult.svg;
+}
+```
+
+## TypeScript definition
+
+```typescript
+export interface ParseResult {
+  /**
+   * The diagram type, e.g. 'flowchart', 'sequence', etc.
+   */
+  diagramType: string;
+  
+  /**
+   * The config passed as YAML frontmatter or directives
+   */
+  config: MermaidConfig;
+}
+```
+
+## Related types
+
+- [MermaidConfig](/api/types/mermaid-config) - Configuration interface
+- [ParseOptions](/api/interfaces/parse-options) - Options for the parse function
+
+## Notes
+
+- The `parse` function validates diagram syntax without rendering it
+- When `suppressErrors` is `false` (default), invalid syntax throws an error
+- When `suppressErrors` is `true`, invalid syntax returns `false` instead of throwing
+- The `config` property contains merged configuration from frontmatter, directives, and global settings
+- Use `parse` to validate diagrams before rendering or to extract diagram metadata

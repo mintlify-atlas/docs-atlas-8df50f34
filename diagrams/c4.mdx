@@ -1,0 +1,374 @@
+---
+title: C4 diagrams
+description: Create C4 model diagrams for visualizing software architecture at different levels
+---
+
+C4 diagrams provide a way to visualize software architecture at different levels of abstraction. The C4 model consists of hierarchical diagrams showing system context, containers, components, and code.
+
+<Note>
+C4 diagrams are experimental in Mermaid. The syntax and properties may change in future releases. Syntax is compatible with PlantUML.
+</Note>
+
+## Diagram types
+
+Mermaid supports five types of C4 diagrams:
+
+1. **System Context** (`C4Context`) - Shows the system and its users
+2. **Container** (`C4Container`) - Shows high-level technical building blocks
+3. **Component** (`C4Component`) - Shows components within a container
+4. **Dynamic** (`C4Dynamic`) - Shows runtime behavior and collaborations
+5. **Deployment** (`C4Deployment`) - Shows deployment topology
+
+## System context diagram
+
+Shows the big picture of the system and how it fits into the world:
+
+```mermaid
+C4Context
+  title System Context diagram for Internet Banking System
+  Enterprise_Boundary(b0, "BankBoundary0") {
+    Person(customerA, "Banking Customer A", "A customer of the bank, with personal bank accounts.")
+    Person(customerB, "Banking Customer B")
+    Person_Ext(customerC, "Banking Customer C", "desc")
+
+    Person(customerD, "Banking Customer D", "A customer of the bank, <br/> with personal bank accounts.")
+
+    System(SystemAA, "Internet Banking System", "Allows customers to view information about their bank accounts, and make payments.")
+
+    Enterprise_Boundary(b1, "BankBoundary") {
+
+      SystemDb_Ext(SystemE, "Mainframe Banking System", "Stores all of the core banking information about customers, accounts, transactions, etc.")
+
+      System_Boundary(b2, "BankBoundary2") {
+        System(SystemA, "Banking System A")
+        System(SystemB, "Banking System B", "A system of the bank, with personal bank accounts. next line.")
+      }
+
+      System_Ext(SystemC, "E-mail system", "The internal Microsoft Exchange e-mail system.")
+      SystemDb(SystemD, "Banking System D Database", "A system of the bank, with personal bank accounts.")
+
+      Boundary(b3, "BankBoundary3", "boundary") {
+        SystemQueue(SystemF, "Banking System F Queue", "A system of the bank.")
+        SystemQueue_Ext(SystemG, "Banking System G Queue", "A system of the bank, with personal bank accounts.")
+      }
+    }
+  }
+
+  BiRel(customerA, SystemAA, "Uses")
+  BiRel(SystemAA, SystemE, "Uses")
+  Rel(SystemAA, SystemC, "Sends e-mails", "SMTP")
+  Rel(SystemC, customerA, "Sends e-mails to")
+
+  UpdateElementStyle(customerA, $fontColor="red", $bgColor="grey", $borderColor="red")
+  UpdateRelStyle(customerA, SystemAA, $textColor="blue", $lineColor="blue", $offsetX="5")
+  UpdateRelStyle(SystemAA, SystemE, $textColor="blue", $lineColor="blue", $offsetY="-10")
+  UpdateRelStyle(SystemAA, SystemC, $textColor="blue", $lineColor="blue", $offsetY="-40", $offsetX="-50")
+  UpdateRelStyle(SystemC, customerA, $textColor="red", $lineColor="red", $offsetX="-50", $offsetY="20")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+## Container diagram
+
+Shows the high-level technology choices and how containers communicate:
+
+```mermaid
+C4Container
+title Container diagram for Internet Banking System
+
+System_Ext(email_system, "E-Mail System", "The internal Microsoft Exchange system", $tags="v1.0")
+Person(customer, Customer, "A customer of the bank, with personal bank accounts", $tags="v1.0")
+
+Container_Boundary(c1, "Internet Banking") {
+    Container(spa, "Single-Page App", "JavaScript, Angular", "Provides all the Internet banking functionality to customers via their web browser")
+    Container_Ext(mobile_app, "Mobile App", "C#, Xamarin", "Provides a limited subset of the Internet banking functionality to customers via their mobile device")
+    Container(web_app, "Web Application", "Java, Spring MVC", "Delivers the static content and the Internet banking SPA")
+    ContainerDb(database, "Database", "SQL Database", "Stores user registration information, hashed auth credentials, access logs, etc.")
+    ContainerDb_Ext(backend_api, "API Application", "Java, Docker Container", "Provides Internet banking functionality via API")
+
+}
+
+System_Ext(banking_system, "Mainframe Banking System", "Stores all of the core banking information about customers, accounts, transactions, etc.")
+
+Rel(customer, web_app, "Uses", "HTTPS")
+UpdateRelStyle(customer, web_app, $offsetY="60", $offsetX="90")
+Rel(customer, spa, "Uses", "HTTPS")
+UpdateRelStyle(customer, spa, $offsetY="-40")
+Rel(customer, mobile_app, "Uses")
+UpdateRelStyle(customer, mobile_app, $offsetY="-30")
+
+Rel(web_app, spa, "Delivers")
+UpdateRelStyle(web_app, spa, $offsetX="130")
+Rel(spa, backend_api, "Uses", "async, JSON/HTTPS")
+Rel(mobile_app, backend_api, "Uses", "async, JSON/HTTPS")
+Rel_Back(database, backend_api, "Reads from and writes to", "sync, JDBC")
+
+Rel(email_system, customer, "Sends e-mails to")
+UpdateRelStyle(email_system, customer, $offsetX="-45")
+Rel(backend_api, email_system, "Sends e-mails using", "sync, SMTP")
+UpdateRelStyle(backend_api, email_system, $offsetY="-60")
+Rel(backend_api, banking_system, "Uses", "sync/async, XML/HTTPS")
+UpdateRelStyle(backend_api, banking_system, $offsetY="-50", $offsetX="-140")
+```
+
+## Component diagram
+
+Shows how a container is made up of components:
+
+```mermaid
+C4Component
+title Component diagram for Internet Banking System - API Application
+
+Container(spa, "Single Page Application", "javascript and angular", "Provides all the internet banking functionality to customers via their web browser.")
+Container(ma, "Mobile App", "Xamarin", "Provides a limited subset to the internet banking functionality to customers via their mobile device.")
+ContainerDb(db, "Database", "Relational Database Schema", "Stores user registration information, hashed authentication credentials, access logs, etc.")
+System_Ext(mbs, "Mainframe Banking System", "Stores all of the core banking information about customers, accounts, transactions, etc.")
+
+Container_Boundary(api, "API Application") {
+    Component(sign, "Sign In Controller", "MVC Rest Controller", "Allows users to sign in to the internet banking system")
+    Component(accounts, "Accounts Summary Controller", "MVC Rest Controller", "Provides customers with a summary of their bank accounts")
+    Component(security, "Security Component", "Spring Bean", "Provides functionality related to singing in, changing passwords, etc.")
+    Component(mbsfacade, "Mainframe Banking System Facade", "Spring Bean", "A facade onto the mainframe banking system.")
+
+    Rel(sign, security, "Uses")
+    Rel(accounts, mbsfacade, "Uses")
+    Rel(security, db, "Read & write to", "JDBC")
+    Rel(mbsfacade, mbs, "Uses", "XML/HTTPS")
+}
+
+Rel_Back(spa, sign, "Uses", "JSON/HTTPS")
+Rel(spa, accounts, "Uses", "JSON/HTTPS")
+
+Rel(ma, sign, "Uses", "JSON/HTTPS")
+Rel(ma, accounts, "Uses", "JSON/HTTPS")
+
+UpdateRelStyle(spa, sign, $offsetY="-40")
+UpdateRelStyle(spa, accounts, $offsetX="40", $offsetY="40")
+
+UpdateRelStyle(ma, sign, $offsetX="-90", $offsetY="40")
+UpdateRelStyle(ma, accounts, $offsetY="-40")
+
+    UpdateRelStyle(sign, security, $offsetX="-160", $offsetY="10")
+    UpdateRelStyle(accounts, mbsfacade, $offsetX="140", $offsetY="10")
+    UpdateRelStyle(security, db, $offsetY="-40")
+    UpdateRelStyle(mbsfacade, mbs, $offsetY="-40")
+```
+
+## Dynamic diagram
+
+Shows how elements collaborate at runtime:
+
+```mermaid
+C4Dynamic
+title Dynamic diagram for Internet Banking System - API Application
+
+ContainerDb(c4, "Database", "Relational Database Schema", "Stores user registration information, hashed authentication credentials, access logs, etc.")
+Container(c1, "Single-Page Application", "JavaScript and Angular", "Provides all of the Internet banking functionality to customers via their web browser.")
+Container_Boundary(b, "API Application") {
+  Component(c3, "Security Component", "Spring Bean", "Provides functionality Related to signing in, changing passwords, etc.")
+  Component(c2, "Sign In Controller", "Spring MVC Rest Controller", "Allows users to sign in to the Internet Banking System.")
+}
+Rel(c1, c2, "Submits credentials to", "JSON/HTTPS")
+Rel(c2, c3, "Calls isAuthenticated() on")
+Rel(c3, c4, "select * from users where username = ?", "JDBC")
+
+UpdateRelStyle(c1, c2, $textColor="red", $offsetY="-40")
+UpdateRelStyle(c2, c3, $textColor="red", $offsetX="-40", $offsetY="60")
+UpdateRelStyle(c3, c4, $textColor="red", $offsetY="-40", $offsetX="10")
+```
+
+## Deployment diagram
+
+Shows how containers are deployed to infrastructure:
+
+```mermaid
+C4Deployment
+title Deployment Diagram for Internet Banking System - Live
+
+Deployment_Node(mob, "Customer's mobile device", "Apple IOS or Android"){
+    Container(mobile, "Mobile App", "Xamarin", "Provides a limited subset of the Internet Banking functionality to customers via their mobile device.")
+}
+
+Deployment_Node(comp, "Customer's computer", "Microsoft Windows or Apple macOS"){
+    Deployment_Node(browser, "Web Browser", "Google Chrome, Mozilla Firefox,<br/> Apple Safari or Microsoft Edge"){
+        Container(spa, "Single Page Application", "JavaScript and Angular", "Provides all of the Internet Banking functionality to customers via their web browser.")
+    }
+}
+
+Deployment_Node(plc, "Big Bank plc", "Big Bank plc data center"){
+    Deployment_Node(dn, "bigbank-api*** x8", "Ubuntu 16.04 LTS"){
+        Deployment_Node(apache, "Apache Tomcat", "Apache Tomcat 8.x"){
+            Container(api, "API Application", "Java and Spring MVC", "Provides Internet Banking functionality via a JSON/HTTPS API.")
+        }
+    }
+    Deployment_Node(bb2, "bigbank-web*** x4", "Ubuntu 16.04 LTS"){
+        Deployment_Node(apache2, "Apache Tomcat", "Apache Tomcat 8.x"){
+            Container(web, "Web Application", "Java and Spring MVC", "Delivers the static content and the Internet Banking single page application.")
+        }
+    }
+    Deployment_Node(bigbankdb01, "bigbank-db01", "Ubuntu 16.04 LTS"){
+        Deployment_Node(oracle, "Oracle - Primary", "Oracle 12c"){
+            ContainerDb(db, "Database", "Relational Database Schema", "Stores user registration information, hashed authentication credentials, access logs, etc.")
+        }
+    }
+    Deployment_Node(bigbankdb02, "bigbank-db02", "Ubuntu 16.04 LTS") {
+        Deployment_Node(oracle2, "Oracle - Secondary", "Oracle 12c") {
+            ContainerDb(db2, "Database", "Relational Database Schema", "Stores user registration information, hashed authentication credentials, access logs, etc.")
+        }
+    }
+}
+
+Rel(mobile, api, "Makes API calls to", "json/HTTPS")
+Rel(spa, api, "Makes API calls to", "json/HTTPS")
+Rel_U(web, spa, "Delivers to the customer's web browser")
+Rel(api, db, "Reads from and writes to", "JDBC")
+Rel(api, db2, "Reads from and writes to", "JDBC")
+Rel_R(db, db2, "Replicates data to")
+
+UpdateRelStyle(spa, api, $offsetY="-40")
+UpdateRelStyle(web, spa, $offsetY="-40")
+UpdateRelStyle(api, db, $offsetY="-20", $offsetX="5")
+UpdateRelStyle(api, db2, $offsetX="-40", $offsetY="-20")
+UpdateRelStyle(db, db2, $offsetY="-10")
+```
+
+## Styling elements
+
+<Accordion title="UpdateElementStyle">
+
+Customize the appearance of elements:
+
+```
+UpdateElementStyle(elementName, $bgColor="color", $fontColor="color", $borderColor="color")
+```
+
+Example:
+```
+UpdateElementStyle(customerA, $fontColor="red", $bgColor="grey", $borderColor="red")
+```
+
+</Accordion>
+
+<Accordion title="UpdateRelStyle">
+
+Customize the appearance of relationships:
+
+```
+UpdateRelStyle(from, to, $textColor="color", $lineColor="color", $offsetX="value", $offsetY="value")
+```
+
+Example:
+```
+UpdateRelStyle(customerA, SystemAA, $textColor="blue", $lineColor="blue", $offsetX="5")
+```
+
+</Accordion>
+
+<Accordion title="UpdateLayoutConfig">
+
+Adjust the layout configuration:
+
+```
+UpdateLayoutConfig($c4ShapeInRow="number", $c4BoundaryInRow="number")
+```
+
+Example:
+```
+UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+</Accordion>
+
+## Parameter assignment
+
+There are two ways to assign optional parameters (those with `?` prefix):
+
+### Positional parameters
+
+```
+UpdateRelStyle(customerA, bankA, "red", "blue", "-40", "60")
+```
+
+### Named parameters
+
+Parameter names must start with `$`:
+
+```
+UpdateRelStyle(customerA, bankA, $offsetX="-40", $offsetY="60", $lineColor="blue", $textColor="red")
+UpdateRelStyle(customerA, bankA, $offsetY="60")
+```
+
+<Tip>
+Use named parameters for better readability and when you only need to set specific optional parameters.
+</Tip>
+
+## Supported elements
+
+<Accordion title="System context elements">
+
+- `Person(alias, label, ?descr, ?sprite, ?tags, $link)`
+- `Person_Ext` - External person
+- `System(alias, label, ?descr, ?sprite, ?tags, $link)`
+- `SystemDb` - System database
+- `SystemQueue` - System queue
+- `System_Ext` - External system
+- `SystemDb_Ext` - External database
+- `SystemQueue_Ext` - External queue
+- `Boundary(alias, label, ?type, ?tags, $link)`
+- `Enterprise_Boundary(alias, label, ?tags, $link)`
+- `System_Boundary`
+
+</Accordion>
+
+<Accordion title="Container elements">
+
+- `Container(alias, label, ?techn, ?descr, ?sprite, ?tags, $link)`
+- `ContainerDb` - Container database
+- `ContainerQueue` - Container queue
+- `Container_Ext` - External container
+- `ContainerDb_Ext` - External database
+- `ContainerQueue_Ext` - External queue
+- `Container_Boundary(alias, label, ?tags, $link)`
+
+</Accordion>
+
+<Accordion title="Component elements">
+
+- `Component(alias, label, ?techn, ?descr, ?sprite, ?tags, $link)`
+- `ComponentDb` - Component database
+- `ComponentQueue` - Component queue
+- `Component_Ext` - External component
+- `ComponentDb_Ext` - External database
+- `ComponentQueue_Ext` - External queue
+
+</Accordion>
+
+<Accordion title="Relationship types">
+
+- `Rel(from, to, label, ?techn, ?descr, ?sprite, ?tags, $link)`
+- `BiRel` - Bidirectional relationship
+- `Rel_U`, `Rel_Up` - Upward relationship
+- `Rel_D`, `Rel_Down` - Downward relationship
+- `Rel_L`, `Rel_Left` - Left relationship
+- `Rel_R`, `Rel_Right` - Right relationship
+- `Rel_Back` - Backward relationship
+
+</Accordion>
+
+## Limitations
+
+<Note>
+The following features are not currently supported:
+
+- Sprites (custom icons)
+- Tags
+- Links
+- Legend
+- Layout statements (Lay_U, Lay_D, Lay_L, Lay_R)
+- Custom element and relationship tags (AddElementTag, AddRelTag)
+
+</Note>
+
+<Tip>
+C4 diagrams have a fixed style. Different CSS themes do not affect C4 diagram appearance.
+</Tip>

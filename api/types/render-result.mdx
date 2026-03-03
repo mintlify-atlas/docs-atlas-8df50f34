@@ -1,0 +1,127 @@
+---
+title: RenderResult
+description: Result object returned by the render function
+---
+
+The `RenderResult` interface represents the output of the Mermaid render function. It contains the SVG code for the rendered diagram along with optional bind functions for attaching event listeners.
+
+## Properties
+
+<ResponseField name="svg" type="string" required>
+  The SVG code for the rendered graph. This is a complete SVG element as a string that can be inserted into the DOM.
+</ResponseField>
+
+<ResponseField name="diagramType" type="string" required>
+  The type of diagram that was rendered (e.g., 'flowchart', 'sequence', 'gantt', 'class', etc.).
+</ResponseField>
+
+<ResponseField name="bindFunctions" type="(element: Element) => void">
+  Optional function to be called after the SVG has been inserted into the DOM. This is necessary for adding event listeners to the elements in the SVG.
+  
+  This function should be called with the DOM element that contains the rendered SVG to properly attach interactive functionality.
+</ResponseField>
+
+## Example usage
+
+### Basic rendering
+
+```javascript
+import mermaid from 'mermaid';
+
+const graphDefinition = 'graph TD; A-->B; B-->C;';
+const { svg, diagramType } = await mermaid.render('myDiagram', graphDefinition);
+
+console.log(diagramType); // 'flowchart-v2'
+document.getElementById('container').innerHTML = svg;
+```
+
+### Rendering with bind functions
+
+```javascript
+import mermaid from 'mermaid';
+
+const element = document.querySelector('#graphDiv');
+const graphDefinition = 'graph TB\na-->b';
+
+const { svg, bindFunctions } = await mermaid.render('graphDiv', graphDefinition);
+
+// Insert the SVG into the DOM
+element.innerHTML = svg;
+
+// Call bindFunctions to attach event listeners (only if it exists)
+bindFunctions?.(element);
+```
+
+### Using with async/await
+
+```javascript
+async function renderDiagram() {
+  try {
+    const result = await mermaid.render(
+      'diagram-1',
+      `sequenceDiagram
+        Alice->>John: Hello John, how are you?
+        John-->>Alice: Great!`
+    );
+    
+    const container = document.getElementById('diagram-container');
+    container.innerHTML = result.svg;
+    
+    if (result.bindFunctions) {
+      result.bindFunctions(container);
+    }
+    
+    console.log(`Rendered ${result.diagramType} diagram`);
+  } catch (error) {
+    console.error('Error rendering diagram:', error);
+  }
+}
+
+renderDiagram();
+```
+
+### Destructuring the result
+
+```javascript
+const { svg, diagramType, bindFunctions } = await mermaid.render(
+  'myId',
+  'graph LR; A-->B'
+);
+
+// Use the properties
+const container = document.getElementById('output');
+container.innerHTML = svg;
+bindFunctions?.(container);
+
+console.log(`Diagram type: ${diagramType}`);
+```
+
+## TypeScript definition
+
+```typescript
+export interface RenderResult {
+  /**
+   * The svg code for the rendered graph.
+   */
+  svg: string;
+  
+  /**
+   * The diagram type, e.g. 'flowchart', 'sequence', etc.
+   */
+  diagramType: string;
+  
+  /**
+   * Bind function to be called after the svg has been inserted into the DOM.
+   * This is necessary for adding event listeners to the elements in the svg.
+   */
+  bindFunctions?: (element: Element) => void;
+}
+```
+
+## Notes
+
+- The `svg` property contains a complete SVG element as a string, ready to be inserted into the DOM
+- The `diagramType` can be used to identify which type of diagram was rendered, useful for conditional logic or analytics
+- The `bindFunctions` property is optional and may not be present for all diagram types
+- Always call `bindFunctions` after inserting the SVG into the DOM to ensure interactive features work correctly
+- Use the optional chaining operator (`?.`) when calling `bindFunctions` to safely handle cases where it might be undefined

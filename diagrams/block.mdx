@@ -1,0 +1,329 @@
+---
+title: Block diagrams
+description: Create structured block diagrams with full control over component positioning in Mermaid.
+---
+
+Block diagrams provide an intuitive way to represent complex systems, processes, or architectures visually. They are composed of blocks and connectors, where blocks represent fundamental components and connectors show relationships between them.
+
+## Introduction
+
+Block diagrams give you full control over where shapes are positioned, unlike flowcharts where automatic layout can move shapes unexpectedly.
+
+```mermaid
+block
+columns 1
+  db(("DB"))
+  blockArrowId6<["&nbsp;&nbsp;&nbsp;"]>(down)
+  block:ID
+    A
+    B["A wide one in the middle"]
+    C
+  end
+  space
+  D
+  ID --> D
+  C --> D
+  style B fill:#969,stroke:#333,stroke-width:4px
+```
+
+## Basic syntax
+
+### Simple blocks
+
+Create a basic block diagram with three blocks:
+
+```mermaid
+block
+  a b c
+```
+
+### Columns
+
+Organize blocks into columns:
+
+```mermaid
+block
+  columns 3
+  a b c d
+```
+
+This creates a 3-column layout where 'd' wraps to the second row.
+
+## Advanced configuration
+
+### Block width
+
+Span blocks across multiple columns:
+
+```mermaid
+block
+  columns 3
+  a["A label"] b:2 c:2 d
+```
+
+Blocks 'b' and 'c' each span 2 columns.
+
+### Composite blocks
+
+Create nested blocks:
+
+```mermaid
+block
+    block
+      D
+    end
+    A["A: I am a wide one"]
+```
+
+### Complex layouts
+
+Combine column widths and composite blocks:
+
+```mermaid
+block
+  columns 3
+  a:3
+  block:group1:2
+    columns 2
+    h i j k
+  end
+  g
+  block:group2:3
+    %% columns auto (default)
+    l m n o p q r
+  end
+```
+
+### Vertical stacking
+
+Stack blocks vertically using a single column:
+
+```mermaid
+block
+  block
+    columns 1
+    a["A label"] b c d
+  end
+```
+
+## Block shapes
+
+### Round edged
+
+```mermaid
+block
+    id1("This is the text in the box")
+```
+
+### Stadium shaped
+
+```mermaid
+block
+    id1(["This is the text in the box"])
+```
+
+### Subroutine
+
+```mermaid
+block
+    id1[["This is the text in the box"]]
+```
+
+### Cylindrical (database)
+
+```mermaid
+block
+    id1[("Database")]
+```
+
+### Circle
+
+```mermaid
+block
+    id1(("This is the text in the circle"))
+```
+
+### Asymmetric
+
+```mermaid
+block
+  id1>"This is the text in the box"]
+```
+
+### Rhombus
+
+```mermaid
+block
+    id1{"This is the text in the box"}
+```
+
+### Hexagon
+
+```mermaid
+block
+    id1{{"This is the text in the box"}}
+```
+
+### Parallelogram and trapezoid
+
+```mermaid
+block
+  id1[/"This is the text in the box"/]
+  id2[\"This is the text in the box"\]
+  A[/"Christmas"\]
+  B[\"Go shopping"/]
+```
+
+### Double circle
+
+```mermaid
+block
+    id1((("This is the text in the circle")))
+```
+
+## Block arrows and spaces
+
+### Block arrows
+
+Indicate directional flow:
+
+```mermaid
+block
+  blockArrowId<["Label"]>(right)
+  blockArrowId2<["Label"]>(left)
+  blockArrowId3<["Label"]>(up)
+  blockArrowId4<["Label"]>(down)
+  blockArrowId5<["Label"]>(x)
+  blockArrowId6<["Label"]>(y)
+  blockArrowId7<["Label"]>(x, down)
+```
+
+### Space blocks
+
+Create intentional empty spaces:
+
+```mermaid
+block
+  columns 3
+  a space b
+  c   d   e
+```
+
+Or specify width:
+
+```mermaid
+block
+  ida space:3 idb idc
+```
+
+## Connecting blocks
+
+### Basic links
+
+```mermaid
+block
+  A space B
+  A-->B
+```
+
+### Text on links
+
+```mermaid
+block
+  A space:2 B
+  A-- "X" -->B
+```
+
+### Complete example
+
+```mermaid
+block
+columns 1
+  db(("DB"))
+  blockArrowId6<["&nbsp;&nbsp;&nbsp;"]>(down)
+  block:ID
+    A
+    B["A wide one in the middle"]
+    C
+  end
+  space
+  D
+  ID --> D
+  C --> D
+  style B fill:#939,stroke:#333,stroke-width:4px
+```
+
+## Styling
+
+### Individual block styling
+
+```mermaid
+block
+  id1 space id2
+  id1("Start")-->id2("Stop")
+  style id1 fill:#636,stroke:#333,stroke-width:4px
+  style id2 fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+```
+
+### Class styling
+
+Define reusable styles:
+
+```mermaid
+block
+  A space B
+  A-->B
+  classDef blue fill:#6e6ce6,stroke:#333,stroke-width:4px;
+  class A blue
+  style B fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+```
+
+## Practical examples
+
+### System architecture
+
+```mermaid
+block
+  columns 3
+  Frontend blockArrowId6<[" "]>(right) Backend
+  space:2 down<[" "]>(down)
+  Disk left<[" "]>(left) Database[("Database")]
+
+  classDef front fill:#696,stroke:#333;
+  classDef back fill:#969,stroke:#333;
+  class Frontend front
+  class Backend,Database back
+```
+
+### Business process flow
+
+```mermaid
+block
+  columns 3
+  Start(("Start")) space:2
+  down<[" "]>(down) space:2
+  Decision{{"Make Decision"}} right<["Yes"]>(right) Process1["Process A"]
+  downAgain<["No"]>(down) space r3<["Done"]>(down)
+  Process2["Process B"] r2<["Done"]>(right) End(("End"))
+
+  style Start fill:#969;
+  style End fill:#696;
+```
+
+## Tips and best practices
+
+<Tip>
+Use comments with `%%` to document your diagram structure, especially when working in teams.
+</Tip>
+
+<Tip>
+Break down complex diagrams into smaller, modular components for easier maintenance.
+</Tip>
+
+<Note>
+Ensure links between blocks use correct arrow syntax (`-->` or `---`) and remember to add space blocks between connected blocks for proper positioning.
+</Note>
+
+<Note>
+When applying styles, separate properties with commas and use proper CSS property format: `style A fill:#969,stroke:#333;`
+</Note>
